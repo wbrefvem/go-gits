@@ -78,7 +78,7 @@ func (suite *BitbucketCloudProviderTestSuite) SetupSuite() {
 	suite.mux = http.NewServeMux()
 
 	for path, methodMap := range bitbucketRouter {
-		suite.mux.HandleFunc(path, util.GetMockAPIResponseFromFile("test_data/bitbucket", methodMap))
+		suite.mux.HandleFunc(path, util.GetMockAPIResponseFromFile("test_data/bitbucket_cloud", methodMap))
 	}
 
 	as := auth.AuthServer{
@@ -92,7 +92,8 @@ func (suite *BitbucketCloudProviderTestSuite) SetupSuite() {
 		ApiToken: "0123456789abdef",
 	}
 
-	bp, err := NewBitbucketCloudProvider(&as, &ua)
+	git := NewGitCLI()
+	bp, err := NewBitbucketCloudProvider(&as, &ua, git)
 
 	suite.Require().NotNil(bp)
 	suite.Require().Nil(err)
@@ -185,10 +186,10 @@ func (suite *BitbucketCloudProviderTestSuite) TestRenameRepository() {
 
 func (suite *BitbucketCloudProviderTestSuite) TestCreatePullRequest() {
 	args := GitPullRequestArguments{
-		Repo:  "test-repo",
-		Head:  "83777f6",
-		Base:  "77d0a923f297",
-		Title: "Test Pull Request",
+		GitRepositoryInfo: &GitRepositoryInfo{Name: "test-repo", Organisation: "test-user"},
+		Head:              "83777f6",
+		Base:              "77d0a923f297",
+		Title:             "Test Pull Request",
 	}
 
 	pr, err := suite.provider.CreatePullRequest(&args)
@@ -217,7 +218,7 @@ func (suite *BitbucketCloudProviderTestSuite) TestGetPullRequest() {
 
 	pr, err := suite.provider.GetPullRequest(
 		"test-user",
-		"test-repo",
+		&GitRepositoryInfo{Name: "test-repo"},
 		3,
 	)
 
@@ -226,7 +227,7 @@ func (suite *BitbucketCloudProviderTestSuite) TestGetPullRequest() {
 }
 
 func (suite *BitbucketCloudProviderTestSuite) TestPullRequestCommits() {
-	commits, err := suite.provider.GetPullRequestCommits("test-user", "test-repo", 1)
+	commits, err := suite.provider.GetPullRequestCommits("test-user", &GitRepositoryInfo{Name: "test-repo"}, 1)
 
 	suite.Require().Nil(err)
 	suite.Require().Equal(len(commits), 2)
@@ -285,7 +286,7 @@ func (suite *BitbucketCloudProviderTestSuite) TestMergePullRequest() {
 func (suite *BitbucketCloudProviderTestSuite) TestCreateWebHook() {
 
 	data := &GitWebHookArguments{
-		Repo: "test-repo",
+		Repo: &GitRepositoryInfo{Name: "test-repo", Organisation: "test-user"},
 		URL:  "https://my-jenkins.example.com/bitbucket-webhook/",
 	}
 	err := suite.provider.CreateWebHook(data)
