@@ -16,6 +16,7 @@ import (
 	"github.com/jenkins-x/jx/pkg/auth"
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/wbrefvem/go-bitbucket"
+	"github.com/wbrefvem/go-gits/pkg/git"
 )
 
 // BitbucketCloudProvider implements GitProvider interface for bitbucket.org
@@ -26,7 +27,7 @@ type BitbucketCloudProvider struct {
 
 	Server auth.AuthServer
 	User   auth.UserAuth
-	Git    gitter.Gitter
+	Git    git.Gitter
 }
 
 var stateMap = map[string]string{
@@ -36,7 +37,7 @@ var stateMap = map[string]string{
 	"STOPPED":    "stopped",
 }
 
-func NewBitbucketCloudProvider(server *auth.AuthServer, user *auth.UserAuth, git gitter.Gitter) (GitProvider, error) {
+func NewBitbucketCloudProvider(server *auth.AuthServer, user *auth.UserAuth, git git.Gitter) (GitProvider, error) {
 	ctx := context.Background()
 
 	basicAuth := bitbucket.BasicAuth{
@@ -946,10 +947,10 @@ func (b *BitbucketCloudProvider) GetContent(org string, name string, path string
 	return nil, fmt.Errorf("Getting content not supported on bitbucket")
 }
 
-func BitBucketCloudAccessTokenURL(url string, username string) string {
+func (b *BitbucketCloudProvider) AccessTokenURL() string {
 	// TODO with github we can default the scopes/flags we need on a token via adding
 	// ?scopes=repo,read:user,user:email,write:repo_hook
 	//
 	// is there a way to do that for bitbucket?
-	return util.UrlJoin(url, "/account/user", username, "/app-passwords/new")
+	return util.UrlJoin(b.ServerURL(), "/account/user", username, "/app-passwords/new")
 }

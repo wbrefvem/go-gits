@@ -334,3 +334,7 @@ func (g *GitFakeProvider) AcceptInvitation(int64) (*github.Response, error) {
 func (g *GitFakeProvider) notFound() error {
 	return fmt.Errorf("Not found")
 }
+
+func (g *GitFakeProvider) AccessTokenURL() string {
+	return ""
+}

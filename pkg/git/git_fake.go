@@ -1,4 +1,4 @@
-package gitter
+package git
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/jenkins-x/jx/pkg/auth"
+	"github.com/jenkins-x/jx/pkg/util"
 	gitcfg "gopkg.in/src-d/go-git.v4/config"
 )
 
@@ -31,7 +32,6 @@ type GitFake struct {
 	Branches       []string
 	BranchesRemote []string
 	CurrentBranch  string
-	AccessTokenURL string
 	RepoInfo       GitRepository
 	Fork           bool
 	GitVersion     string
@@ -55,7 +55,7 @@ func (g *GitFake) FindGitConfigDir(dir string) (string, string, error) {
 
 // PrintCreateRepositoryGenerateAccessToken prints the generate access token URL
 func (g *GitFake) PrintCreateRepositoryGenerateAccessToken(server *auth.AuthServer, username string, o io.Writer) {
-	fmt.Fprintf(o, "Access token URL: %s\n\n", g.AccessTokenURL)
+	fmt.Fprintf(o, "Access token URL: %s\n\n", g.AccessTokenURL())
 }
 
 // Status check the status
@@ -479,4 +479,8 @@ func (g *GitFake) Diff(dir string) (string, error) {
 
 func (g *GitFake) notFound() error {
 	return fmt.Errorf("Not found")
+}
+
+func (g *GitFake) AccessTokenURL() string {
+	return util.UrlJoin(g.serverURL, "/access-token")
 }

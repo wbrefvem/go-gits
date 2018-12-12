@@ -15,15 +15,6 @@ const (
 	gitPrefix = "git@"
 )
 
-type GitRepository struct {
-	URL          string
-	Scheme       string
-	Host         string
-	Organisation string
-	Name         string
-	Project      string
-}
-
 func (i *GitRepository) IsGitHub() bool {
 	return GitHubHost == i.Host || strings.HasSuffix(i.URL, "https://github.com")
 }
@@ -173,25 +164,4 @@ func parsePath(path string, info *GitRepository) (*GitRepository, error) {
 	}
 
 	return info, fmt.Errorf("Invalid path %s could not determine organisation and repository name", path)
-}
-
-// SaasGitKind returns the kind for SaaS Git providers or "" if the URL could not be deduced
-func SaasGitKind(gitServiceUrl string) string {
-	gitServiceUrl = strings.TrimSuffix(gitServiceUrl, "/")
-	switch gitServiceUrl {
-	case "http://github.com":
-		return KindGitHub
-	case "https://github.com":
-		return KindGitHub
-	case "https://gitlab.com":
-		return KindGitlab
-	case "http://bitbucket.org":
-		return KindBitBucketCloud
-	case BitbucketCloudURL:
-		return KindBitBucketCloud
-	case "http://fake.git", FakeGitURL:
-		return KindGitFake
-	default:
-		return ""
-	}
 }
