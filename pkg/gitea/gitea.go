@@ -12,7 +12,7 @@ import (
 	"github.com/jenkins-x/jx/pkg/auth"
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/jenkins-x/jx/pkg/util"
-	"github.com/wbrefvem/go-gits/pkg/gitter"
+	"github.com/wbrefvem/go-gits/pkg/git"
 )
 
 type GiteaProvider struct {
@@ -21,10 +21,10 @@ type GiteaProvider struct {
 
 	Server auth.AuthServer
 	User   auth.UserAuth
-	Git    gitter.Gitter
+	Git    git.Gitter
 }
 
-func NewGiteaProvider(server *auth.AuthServer, user *auth.UserAuth, git gitter.Gitter) (GitProvider, error) {
+func NewGiteaProvider(server *auth.AuthServer, user *auth.UserAuth, git git.Gitter) (GitProvider, error) {
 	client := gitea.NewClient(server.URL, user.ApiToken)
 
 	provider := GiteaProvider{
@@ -640,8 +640,8 @@ func (p *GiteaProvider) JenkinsWebHookPath(gitURL string, secret string) string 
 	return "/gitea-webhook/post"
 }
 
-func GiteaAccessTokenURL(url string) string {
-	return util.UrlJoin(url, "/user/settings/applications")
+func (p *GiteaProvider) AccessTokenURL() string {
+	return util.UrlJoin(p.ServerURL(), "/user/settings/applications")
 }
 
 func (p *GiteaProvider) Label() string {

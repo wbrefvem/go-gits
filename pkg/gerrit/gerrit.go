@@ -10,7 +10,7 @@ import (
 	"github.com/google/go-github/github"
 	"github.com/jenkins-x/jx/pkg/auth"
 	"github.com/jenkins-x/jx/pkg/log"
-	"github.com/wbrefvem/go-gits/pkg/gitter"
+	"github.com/wbrefvem/go-gits/pkg/git"
 )
 
 type GerritProvider struct {
@@ -20,10 +20,10 @@ type GerritProvider struct {
 
 	Server auth.AuthServer
 	User   auth.UserAuth
-	Git    gitter.Gitter
+	Git    git.Gitter
 }
 
-func NewGerritProvider(server *auth.AuthServer, user *auth.UserAuth, git gitter.Gitter) (GitProvider, error) {
+func NewGerritProvider(server *auth.AuthServer, user *auth.UserAuth, git git.Gitter) (GitProvider, error) {
 	ctx := context.Background()
 
 	provider := GerritProvider{
@@ -306,4 +306,8 @@ func (p *GerritProvider) AcceptInvitation(ID int64) (*github.Response, error) {
 
 func (p *GerritProvider) GetContent(org string, name string, path string, ref string) (*GitFileContent, error) {
 	return nil, fmt.Errorf("Getting content not supported on gerrit")
+}
+
+func (p *GerritProvider) AccessTokenURL() string {
+	return ""
 }

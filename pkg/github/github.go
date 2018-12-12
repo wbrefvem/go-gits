@@ -12,7 +12,7 @@ import (
 	"github.com/jenkins-x/jx/pkg/auth"
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/jenkins-x/jx/pkg/util"
-	"github.com/wbrefvem/go-gits/pkg/gitter"
+	"github.com/wbrefvem/go-gits/pkg/git"
 	"golang.org/x/oauth2"
 )
 
@@ -27,10 +27,10 @@ type GitHubProvider struct {
 
 	Server auth.AuthServer
 	User   auth.UserAuth
-	Git    gitter.Gitter
+	Git    git.Gitter
 }
 
-func NewGitHubProvider(server *auth.AuthServer, user *auth.UserAuth, git gitter.Gitter) (GitProvider, error) {
+func NewGitHubProvider(server *auth.AuthServer, user *auth.UserAuth, git git.Gitter) (GitProvider, error) {
 	ctx := context.Background()
 
 	provider := GitHubProvider{
@@ -1020,7 +1020,8 @@ func (p *GitHubProvider) JenkinsWebHookPath(gitURL string, secret string) string
 	return "/github-webhook/"
 }
 
-func GitHubAccessTokenURL(url string) string {
+func (p *GitHubProvider) AccessTokenURL() string {
+	url := p.ServerURL()
 	if strings.Index(url, "://") < 0 {
 		url = "https://" + url
 	}

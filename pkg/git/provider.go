@@ -10,12 +10,6 @@ import (
 	"time"
 
 	"github.com/jenkins-x/jx/pkg/auth"
-	"github.com/wbrefvem/go-gits/pkg/bitbucket"
-	"github.com/wbrefvem/go-gits/pkg/gitea"
-	"github.com/wbrefvem/go-gits/pkg/github"
-	"github.com/wbrefvem/go-gits/pkg/gitlab"
-	"github.com/wbrefvem/go-gits/pkg/gitter"
-	"github.com/wbrefvem/go-gits/pkg/picker"
 	survey "gopkg.in/AlecAivazis/survey.v1"
 	"gopkg.in/AlecAivazis/survey.v1/terminal"
 )
@@ -33,11 +27,11 @@ type GitRepository struct {
 	Language         string
 	Fork             bool
 	Stars            int
-	URL          string
-	Scheme       string
-	Host         string
-	Organisation string
-	Project      string
+	URL              string
+	Scheme           string
+	Host             string
+	Organisation     string
+	Project          string
 }
 
 type GitPullRequest struct {
@@ -139,10 +133,10 @@ type GitRepoStatus struct {
 }
 
 type GitPullRequestArguments struct {
-	Title             string
-	Body              string
-	Head              string
-	Base              string
+	Title         string
+	Body          string
+	Head          string
+	Base          string
 	GitRepository *GitRepository
 }
 
@@ -189,14 +183,6 @@ func (pr *GitPullRequest) NumberString() string {
 	return "#" + strconv.Itoa(*n)
 }
 
-func CreateProvider(server *auth.AuthServer, user *auth.UserAuth, git gitter.Gitter) (GitProvider, error) {
-	if server.Kind == "" {
-		server.Kind = SaasGitKind(server.URL)
-	}
-	providerConstructor := picker.GetProviderConstructor(server.Kind)
-	return providerConstructor(server, user, git)
-}
-
 // GetHost returns the Git Provider hostname, e.g github.com
 func GetHost(gitProvider GitProvider) (string, error) {
 	if gitProvider == nil {
@@ -211,22 +197,6 @@ func GetHost(gitProvider GitProvider) (string, error) {
 		return "", fmt.Errorf("error parsing ")
 	}
 	return url.Host, nil
-}
-
-func ProviderAccessTokenURL(kind string, url string, username string) string {
-	switch kind {
-	case KindBitBucketCloud:
-		// TODO pass in the username
-		return bitbucket.BitBucketCloudAccessTokenURL(url, username)
-	case KindBitBucketServer:
-		return bitbucket.BitBucketServerAccessTokenURL(url)
-	case KindGitea:
-		return gitea.GiteaAccessTokenURL(url)
-	case KindGitlab:
-		return gitlab.GitlabAccessTokenURL(url)
-	default:
-		return github.GitHubAccessTokenURL(url)
-	}
 }
 
 // PickOrganisation picks an organisations login if there is one available
@@ -398,7 +368,7 @@ func createUserForServer(batchMode bool, userAuth *auth.UserAuth, authConfigSvc 
 	git Gitter, in terminal.FileReader, out terminal.FileWriter, errOut io.Writer) (*auth.UserAuth, error) {
 
 	f := func(username string) error {
-		git.PrintCreateRepositoryGenerateAccessToken(server, username, out)
+		PrintCreateRepositoryGenerateAccessToken(server, username, out)
 		return nil
 	}
 
@@ -422,9 +392,9 @@ func createUserForServer(batchMode bool, userAuth *auth.UserAuth, authConfigSvc 
 
 // ToGitLabels converts the list of label names into an array of GitLabels
 func ToGitLabels(names []string) []GitLabel {
-	answer := []git.GitLabel{}
+	answer := []GitLabel{}
 	for _, n := range names {
-		answer = append(answer, git.GitLabel{Name: n})
+		answer = append(answer, GitLabel{Name: n})
 	}
 	return answer
 }

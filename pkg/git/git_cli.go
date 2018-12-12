@@ -1,9 +1,8 @@
-package gitter
+package git
 
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -12,7 +11,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/wbrefvem/go-gits/pkg/git"
 
 	"github.com/jenkins-x/jx/pkg/auth"
 	"github.com/jenkins-x/jx/pkg/util"
@@ -316,7 +314,7 @@ func (g *GitCLI) Server(dir string) (string, error) {
 }
 
 // Info returns the git info of the repository at the given directory
-func (g *GitCLI) Info(dir string) (*git.GitRepository, error) {
+func (g *GitCLI) Info(dir string) (*GitRepository, error) {
 	text, err := g.gitCmdWithOutput(dir, "status")
 	var rUrl string
 	if err != nil && strings.Contains(text, "Not a git repository") {
@@ -549,15 +547,6 @@ func (g *GitCLI) CreateTag(dir string, tag string, msg string) error {
 	return g.gitCmd("", "tag", "-fa", tag, "-m", msg)
 }
 
-// PrintCreateRepositoryGenerateAccessToken prints the access token URL of a Git repository
-func (g *GitCLI) PrintCreateRepositoryGenerateAccessToken(server *auth.AuthServer, username string, o io.Writer) {
-	tokenUrl := ProviderAccessTokenURL(server.Kind, server.URL, username)
-
-	fmt.Fprintf(o, "To be able to create a repository on %s we need an API Token\n", server.Label())
-	fmt.Fprintf(o, "Please click this URL %s\n\n", util.ColorInfo(tokenUrl))
-	fmt.Fprint(o, "Then COPY the token and enter in into the form below:\n\n")
-}
-
 // IsFork indicates if the repository at the given directory is a fork
 func (g *GitCLI) IsFork(dir string) (bool, error) {
 	// lets ignore errors as that just means there's no config
@@ -568,7 +557,7 @@ func (g *GitCLI) IsFork(dir string) (bool, error) {
 		return true, nil
 	}
 
-	return false, fmt.Errof("could not determine if repo is a fork")
+	return false, fmt.Errorf("could not determine if repo is a fork")
 }
 
 // Version returns the git version

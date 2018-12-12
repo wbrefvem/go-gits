@@ -13,6 +13,8 @@ import (
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/jenkins-x/jx/pkg/util"
 	"github.com/xanzy/go-gitlab"
+
+	"github.com/wbrefvem/go-gits/pkg/git"
 )
 
 type GitlabProvider struct {
@@ -22,10 +24,10 @@ type GitlabProvider struct {
 
 	Server auth.AuthServer
 	User   auth.UserAuth
-	Git    gitter.Gitter
+	Git    git.Gitter
 }
 
-func NewGitlabProvider(server *auth.AuthServer, user *auth.UserAuth, git gitter.Gitter) (GitProvider, error) {
+func NewGitlabProvider(server *auth.AuthServer, user *auth.UserAuth, git git.Gitter) (GitProvider, error) {
 	u := server.URL
 	c := gitlab.NewClient(nil, user.ApiToken)
 	if !IsGitLabServerURL(u) {
@@ -42,7 +44,7 @@ func IsGitLabServerURL(u string) bool {
 }
 
 // Used by unit tests to inject a mocked client
-func WithGitlabClient(server *auth.AuthServer, user *auth.UserAuth, client *gitlab.Client, git gitter.Gitter) (GitProvider, error) {
+func WithGitlabClient(server *auth.AuthServer, user *auth.UserAuth, client *gitlab.Client, git git.Gitter) (GitProvider, error) {
 	provider := &GitlabProvider{
 		Server:   *server,
 		User:     *user,
@@ -639,6 +641,6 @@ func (p *GitlabProvider) GetContent(org string, name string, path string, ref st
 }
 
 // GitlabAccessTokenURL returns the URL to click on to generate a personal access token for the Git provider
-func GitlabAccessTokenURL(url string) string {
-	return util.UrlJoin(url, "/profile/personal_access_tokens")
+func (p *GitlabProvider) AccessTokenURL() string {
+	return util.UrlJoin(p.ServerURL(), "/profile/personal_access_tokens")
 }

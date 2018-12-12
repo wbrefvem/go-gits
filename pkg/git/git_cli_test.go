@@ -1,4 +1,4 @@
-package gitter
+package git
 
 import (
 	"testing"

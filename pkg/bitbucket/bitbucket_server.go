@@ -866,10 +866,10 @@ func (b *BitbucketServerProvider) GetContent(org string, name string, path strin
 	return nil, fmt.Errorf("Getting content not supported on bitbucket")
 }
 
-func BitBucketServerAccessTokenURL(url string) string {
+func (b *BitbucketServerProvider) AccessTokenURL() string {
 	// TODO with github we can default the scopes/flags we need on a token via adding
 	// ?scopes=repo,read:user,user:email,write:repo_hook
 	//
 	// is there a way to do that for bitbucket?
-	return util.UrlJoin(url, "/plugins/servlet/access-tokens/manage")
+	return util.UrlJoin(b.ServerURL(), "/plugins/servlet/access-tokens/manage")
 }
