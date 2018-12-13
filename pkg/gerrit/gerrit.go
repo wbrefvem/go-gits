@@ -23,7 +23,7 @@ type GerritProvider struct {
 	Git    git.Gitter
 }
 
-func NewGerritProvider(server *auth.AuthServer, user *auth.UserAuth, git git.Gitter) (GitProvider, error) {
+func NewGerritProvider(server *auth.AuthServer, user *auth.UserAuth, git git.Gitter) (git.GitProvider, error) {
 	ctx := context.Background()
 
 	provider := GerritProvider{
@@ -64,15 +64,15 @@ func buildEncodedProjectName(org, name string) string {
 	return fullNamePathEscaped
 }
 
-func (p *GerritProvider) projectInfoToGitRepository(project *gerrit.ProjectInfo) *GitRepository {
-	return &GitRepository{
+func (p *GerritProvider) projectInfoToGitRepository(project *gerrit.ProjectInfo) *git.GitRepository {
+	return &git.GitRepository{
 		Name:     project.Name,
 		CloneURL: fmt.Sprintf("%s/%s", p.Server.URL, project.Name),
 		SSHURL:   fmt.Sprintf("%s:%s", p.Server.URL, project.Name),
 	}
 }
 
-func (p *GerritProvider) ListRepositories(org string) ([]*GitRepository, error) {
+func (p *GerritProvider) ListRepositories(org string) ([]*git.GitRepository, error) {
 	options := &gerrit.ProjectOptions{
 		Description: true,
 		Prefix:      url.PathEscape(org),
@@ -83,7 +83,7 @@ func (p *GerritProvider) ListRepositories(org string) ([]*GitRepository, error) 
 		return nil, err
 	}
 
-	repos := []*GitRepository{}
+	repos := []*git.GitRepository{}
 
 	for name, project := range *gerritProjects {
 		project.Name = name
@@ -95,7 +95,7 @@ func (p *GerritProvider) ListRepositories(org string) ([]*GitRepository, error) 
 	return repos, nil
 }
 
-func (p *GerritProvider) CreateRepository(org string, name string, private bool) (*GitRepository, error) {
+func (p *GerritProvider) CreateRepository(org string, name string, private bool) (*git.GitRepository, error) {
 	input := &gerrit.ProjectInput{
 		SubmitType:      "INHERIT",
 		Description:     "Created automatically by Jenkins X.",
@@ -112,7 +112,7 @@ func (p *GerritProvider) CreateRepository(org string, name string, private bool)
 	return repo, nil
 }
 
-func (p *GerritProvider) GetRepository(org string, name string) (*GitRepository, error) {
+func (p *GerritProvider) GetRepository(org string, name string) (*git.GitRepository, error) {
 	fullName := buildEncodedProjectName(org, name)
 
 	project, _, err := p.Client.Projects.GetProject(fullName)
@@ -126,11 +126,11 @@ func (p *GerritProvider) DeleteRepository(org string, name string) error {
 	return nil
 }
 
-func (p *GerritProvider) ForkRepository(originalOrg string, name string, destinationOrg string) (*GitRepository, error) {
+func (p *GerritProvider) ForkRepository(originalOrg string, name string, destinationOrg string) (*git.GitRepository, error) {
 	return nil, nil
 }
 
-func (p *GerritProvider) RenameRepository(org string, name string, newName string) (*GitRepository, error) {
+func (p *GerritProvider) RenameRepository(org string, name string, newName string) (*git.GitRepository, error) {
 	return nil, nil
 }
 
@@ -138,55 +138,55 @@ func (p *GerritProvider) ValidateRepositoryName(org string, name string) error {
 	return nil
 }
 
-func (p *GerritProvider) CreatePullRequest(data *GitPullRequestArguments) (*GitPullRequest, error) {
+func (p *GerritProvider) CreatePullRequest(data *git.GitPullRequestArguments) (*git.GitPullRequest, error) {
 	return nil, nil
 }
 
-func (p *GerritProvider) UpdatePullRequestStatus(pr *GitPullRequest) error {
+func (p *GerritProvider) UpdatePullRequestStatus(pr *git.GitPullRequest) error {
 	return nil
 }
 
-func (p *GerritProvider) GetPullRequest(owner string, repo *GitRepository, number int) (*GitPullRequest, error) {
+func (p *GerritProvider) GetPullRequest(owner string, repo *git.GitRepository, number int) (*git.GitPullRequest, error) {
 	return nil, nil
 }
 
-func (p *GerritProvider) GetPullRequestCommits(owner string, repo *GitRepository, number int) ([]*GitCommit, error) {
+func (p *GerritProvider) GetPullRequestCommits(owner string, repo *git.GitRepository, number int) ([]*git.GitCommit, error) {
 	return nil, nil
 }
 
-func (p *GerritProvider) PullRequestLastCommitStatus(pr *GitPullRequest) (string, error) {
+func (p *GerritProvider) PullRequestLastCommitStatus(pr *git.GitPullRequest) (string, error) {
 	return "", nil
 }
 
-func (p *GerritProvider) ListCommitStatus(org string, repo string, sha string) ([]*GitRepoStatus, error) {
+func (p *GerritProvider) ListCommitStatus(org string, repo string, sha string) ([]*git.GitRepoStatus, error) {
 	return nil, nil
 }
 
 // UpdateCommitStatus updates the status of a specified commit in a specified repo.
-func (p *GerritProvider) UpdateCommitStatus(org, repo, sha string, status *GitRepoStatus) (*GitRepoStatus, error) {
+func (p *GerritProvider) UpdateCommitStatus(org, repo, sha string, status *git.GitRepoStatus) (*git.GitRepoStatus, error) {
 	return nil, nil
 }
 
-func (p *GerritProvider) MergePullRequest(pr *GitPullRequest, message string) error {
+func (p *GerritProvider) MergePullRequest(pr *git.GitPullRequest, message string) error {
 	return nil
 }
 
-func (p *GerritProvider) CreateWebHook(data *GitWebHookArguments) error {
+func (p *GerritProvider) CreateWebHook(data *git.GitWebHookArguments) error {
 	return nil
 }
 
 // UpdateWebHook update a webhook with the data specified.
-func (p *GerritProvider) UpdateWebHook(data *GitWebHookArguments) error {
+func (p *GerritProvider) UpdateWebHook(data *git.GitWebHookArguments) error {
 	return nil
 }
 
 // ListWebHooks lists all webhooks for the specified repo.
-func (p *GerritProvider) ListWebHooks(org, repo string) ([]*GitWebHookArguments, error) {
+func (p *GerritProvider) ListWebHooks(org, repo string) ([]*git.GitWebHookArguments, error) {
 	return nil, nil
 }
 
 // ListOrganisations lists all organizations the configured user has access to.
-func (p *GerritProvider) ListOrganisations() ([]GitOrganisation, error) {
+func (p *GerritProvider) ListOrganisations() ([]git.GitOrganisation, error) {
 	return nil, nil
 }
 
@@ -214,7 +214,7 @@ func (p *GerritProvider) Kind() string {
 	return "gerrit"
 }
 
-func (p *GerritProvider) GetIssue(org string, name string, number int) (*GitIssue, error) {
+func (p *GerritProvider) GetIssue(org string, name string, number int) (*git.GitIssue, error) {
 	log.Warn("Gerrit does not support issue tracking")
 	return nil, nil
 }
@@ -224,17 +224,17 @@ func (p *GerritProvider) IssueURL(org string, name string, number int, isPull bo
 	return ""
 }
 
-func (p *GerritProvider) SearchIssues(org string, name string, query string) ([]*GitIssue, error) {
+func (p *GerritProvider) SearchIssues(org string, name string, query string) ([]*git.GitIssue, error) {
 	log.Warn("Gerrit does not support issue tracking")
 	return nil, nil
 }
 
-func (p *GerritProvider) SearchIssuesClosedSince(org string, name string, t time.Time) ([]*GitIssue, error) {
+func (p *GerritProvider) SearchIssuesClosedSince(org string, name string, t time.Time) ([]*git.GitIssue, error) {
 	log.Warn("Gerrit does not support issue tracking")
 	return nil, nil
 }
 
-func (p *GerritProvider) CreateIssue(owner string, repo string, issue *GitIssue) (*GitIssue, error) {
+func (p *GerritProvider) CreateIssue(owner string, repo string, issue *git.GitIssue) (*git.GitIssue, error) {
 	log.Warn("Gerrit does not support issue tracking")
 	return nil, nil
 }
@@ -244,7 +244,7 @@ func (p *GerritProvider) HasIssues() bool {
 	return false
 }
 
-func (p *GerritProvider) AddPRComment(pr *GitPullRequest, comment string) error {
+func (p *GerritProvider) AddPRComment(pr *git.GitPullRequest, comment string) error {
 	return nil
 }
 
@@ -253,11 +253,11 @@ func (p *GerritProvider) CreateIssueComment(owner string, repo string, number in
 	return nil
 }
 
-func (p *GerritProvider) UpdateRelease(owner string, repo string, tag string, releaseInfo *GitRelease) error {
+func (p *GerritProvider) UpdateRelease(owner string, repo string, tag string, releaseInfo *git.GitRelease) error {
 	return nil
 }
 
-func (p *GerritProvider) ListReleases(org string, name string) ([]*GitRelease, error) {
+func (p *GerritProvider) ListReleases(org string, name string) ([]*git.GitRelease, error) {
 	return nil, nil
 }
 
@@ -285,7 +285,7 @@ func (p *GerritProvider) UserAuth() auth.UserAuth {
 	return auth.UserAuth{}
 }
 
-func (p *GerritProvider) UserInfo(username string) *GitUser {
+func (p *GerritProvider) UserInfo(username string) *git.GitUser {
 	return nil
 }
 
@@ -304,7 +304,7 @@ func (p *GerritProvider) AcceptInvitation(ID int64) (*github.Response, error) {
 	return &github.Response{}, nil
 }
 
-func (p *GerritProvider) GetContent(org string, name string, path string, ref string) (*GitFileContent, error) {
+func (p *GerritProvider) GetContent(org string, name string, path string, ref string) (*git.GitFileContent, error) {
 	return nil, fmt.Errorf("Getting content not supported on gerrit")
 }
 

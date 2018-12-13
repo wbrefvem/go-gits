@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jenkins-x/jx/pkg/auth"
 	survey "gopkg.in/AlecAivazis/survey.v1"
 	"gopkg.in/AlecAivazis/survey.v1/terminal"
 )
@@ -301,93 +300,6 @@ func (s *GitRepoStatus) IsSuccess() bool {
 
 func (s *GitRepoStatus) IsFailed() bool {
 	return s.State == "error" || s.State == "failure"
-}
-
-func (i *GitRepository) PickOrCreateProvider(authConfigSvc auth.ConfigService, message string, batchMode bool, gitKind string, git Gitter, in terminal.FileReader, out terminal.FileWriter, errOut io.Writer) (GitProvider, error) {
-	config := authConfigSvc.Config()
-	hostUrl := i.HostURLWithoutUser()
-	server := config.GetOrCreateServer(hostUrl)
-	if server.Kind == "" {
-		server.Kind = gitKind
-	}
-	userAuth, err := config.PickServerUserAuth(server, message, batchMode, "", in, out, errOut)
-	if err != nil {
-		return nil, err
-	}
-	if userAuth.IsInvalid() {
-		userAuth, err = createUserForServer(batchMode, userAuth, authConfigSvc, server, git, in, out, errOut)
-	}
-	return i.CreateProviderForUser(server, userAuth, gitKind, git)
-}
-
-func (i *GitRepository) CreateProviderForUser(server *auth.AuthServer, user *auth.UserAuth, gitKind string, git Gitter) (GitProvider, error) {
-	if i.Host == GitHubHost {
-		return NewGitHubProvider(server, user, git)
-	}
-	if gitKind != "" && server.Kind != gitKind {
-		server.Kind = gitKind
-	}
-	return CreateProvider(server, user, git)
-}
-
-func (i *GitRepository) CreateProvider(inCluster bool, authConfigSvc auth.ConfigService, gitKind string, git Gitter, batchMode bool, in terminal.FileReader, out terminal.FileWriter, errOut io.Writer) (GitProvider, error) {
-	hostUrl := i.HostURLWithoutUser()
-	return CreateProviderForURL(inCluster, authConfigSvc, gitKind, hostUrl, git, batchMode, in, out, errOut)
-}
-
-// CreateProviderForURL creates the Git provider for the given git kind and host URL
-func CreateProviderForURL(inCluster bool, authConfigSvc auth.ConfigService, gitKind string, hostUrl string, git Gitter, batchMode bool,
-	in terminal.FileReader, out terminal.FileWriter, errOut io.Writer) (GitProvider, error) {
-	config := authConfigSvc.Config()
-	server := config.GetOrCreateServer(hostUrl)
-	if gitKind != "" {
-		server.Kind = gitKind
-	}
-
-	userAuth := config.CurrentUser(server, inCluster)
-	if userAuth != nil && !userAuth.IsInvalid() {
-		return CreateProvider(server, userAuth, git)
-	}
-
-	kind := server.Kind
-	if kind == "" {
-		kind = "GIT"
-	}
-	userAuthVar := auth.CreateAuthUserFromEnvironment(strings.ToUpper(kind))
-	if !userAuthVar.IsInvalid() {
-		return CreateProvider(server, &userAuthVar, git)
-	}
-	userAuth, err := createUserForServer(batchMode, &userAuthVar, authConfigSvc, server, git, in, out, errOut)
-	if err != nil {
-		return nil, err
-	}
-	return CreateProvider(server, userAuth, git)
-}
-
-func createUserForServer(batchMode bool, userAuth *auth.UserAuth, authConfigSvc auth.ConfigService, server *auth.AuthServer,
-	git Gitter, in terminal.FileReader, out terminal.FileWriter, errOut io.Writer) (*auth.UserAuth, error) {
-
-	f := func(username string) error {
-		PrintCreateRepositoryGenerateAccessToken(server, username, out)
-		return nil
-	}
-
-	defaultUserName := ""
-	err := authConfigSvc.Config().EditUserAuth(server.Label(), userAuth, defaultUserName, false, batchMode, f, in, out, errOut)
-	if err != nil {
-		return userAuth, err
-	}
-
-	// TODO lets verify the auth works
-
-	err = authConfigSvc.SaveUserAuth(server.URL, userAuth)
-	if err != nil {
-		return userAuth, fmt.Errorf("failed to store git auth configuration %s", err)
-	}
-	if userAuth.IsInvalid() {
-		return userAuth, fmt.Errorf("you did not properly define the user authentication")
-	}
-	return userAuth, nil
 }
 
 // ToGitLabels converts the list of label names into an array of GitLabels
