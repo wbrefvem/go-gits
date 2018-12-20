@@ -25,7 +25,7 @@ type GitlabProvider struct {
 	Name string
 }
 
-func NewGitlabProvider(username, serverURL, token, providerName string, git git.Gitter) (git.Provider, error) {
+func NewProvider(username, serverURL, token, providerName string, git git.Gitter) (git.Provider, error) {
 	u := serverURL
 	c := gitlab.NewClient(nil, username)
 	if !IsGitLabServerURL(u) {

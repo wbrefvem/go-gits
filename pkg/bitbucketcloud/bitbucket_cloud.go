@@ -35,7 +35,7 @@ var stateMap = map[string]string{
 	"STOPPED":    "stopped",
 }
 
-func NewBitbucketCloudProvider(username, serverURL, token, providerName string, git git.Gitter) (git.Provider, error) {
+func NewProvider(username, serverURL, token, providerName string, git git.Gitter) (git.Provider, error) {
 	ctx := context.Background()
 
 	basicAuth := bitbucket.BasicAuth{

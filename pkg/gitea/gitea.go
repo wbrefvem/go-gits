@@ -22,7 +22,7 @@ type GiteaProvider struct {
 	Name     string
 }
 
-func NewGiteaProvider(username, serverURL, token, providerName string, git git.Gitter) (git.Provider, error) {
+func NewProvider(username, serverURL, token, providerName string, git git.Gitter) (git.Provider, error) {
 	client := gitea.NewClient(serverURL, token)
 
 	provider := GiteaProvider{
