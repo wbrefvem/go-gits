@@ -7,9 +7,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/jenkins-x/jx/pkg/auth"
-	
 	"github.com/jenkins-x/jx/pkg/util"
+	"github.com/wbrefvem/go-gits/pkg/git"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -39,19 +38,8 @@ func (suite *GerritProviderTestSuite) SetupSuite() {
 		suite.mux.HandleFunc(path, util.GetMockAPIResponseFromFile("test_data/gerrit", methodMap))
 	}
 
-	as := auth.AuthServer{
-		URL:         suite.server.URL,
-		Name:        "Test Server",
-		Kind:        "Oauth2",
-		CurrentUser: "test-user",
-	}
-	ua := auth.UserAuth{
-		Username: "test-user",
-		ApiToken: "0123456789abdef",
-	}
-
-	gitter := NewGitCLI()
-	provider, err := NewGerritProvider(&as, &ua, gitter)
+	gitter := git.NewGitCLI()
+	provider, err := NewGerritProvider(gitter)
 
 	suite.Require().NotNil(provider)
 	suite.Require().Nil(err)

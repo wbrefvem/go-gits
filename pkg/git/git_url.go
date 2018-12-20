@@ -15,22 +15,22 @@ const (
 	gitPrefix = "git@"
 )
 
-func (i *GitRepository) IsGitHub() bool {
+func (i *Repository) IsGitHub() bool {
 	return GitHubHost == i.Host || strings.HasSuffix(i.URL, "https://github.com")
 }
 
 // PullRequestURL returns the URL of a pull request of the given name/number
-func (i *GitRepository) PullRequestURL(prName string) string {
+func (i *Repository) PullRequestURL(prName string) string {
 	return util.UrlJoin("https://"+i.Host, i.Organisation, i.Name, "pull", prName)
 }
 
 // HttpCloneURL returns the HTTPS git URL this repository
-func (i *GitRepository) HttpCloneURL() string {
+func (i *Repository) HttpCloneURL() string {
 	return i.HttpsURL() + ".git"
 }
 
 // HttpURL returns the URL to browse this repository in a web browser
-func (i *GitRepository) HttpURL() string {
+func (i *Repository) HttpURL() string {
 	host := i.Host
 	if !strings.Contains(host, ":/") {
 		host = "http://" + host
@@ -39,7 +39,7 @@ func (i *GitRepository) HttpURL() string {
 }
 
 // HttpsURL returns the URL to browse this repository in a web browser
-func (i *GitRepository) HttpsURL() string {
+func (i *Repository) HttpsURL() string {
 	host := i.Host
 	if !strings.Contains(host, ":/") {
 		host = "https://" + host
@@ -48,7 +48,7 @@ func (i *GitRepository) HttpsURL() string {
 }
 
 // HostURL returns the URL to the host
-func (i *GitRepository) HostURL() string {
+func (i *Repository) HostURL() string {
 	answer := i.Host
 	if !strings.Contains(answer, ":/") {
 		// lets find the scheme from the URL
@@ -72,7 +72,7 @@ func (i *GitRepository) HostURL() string {
 	return answer
 }
 
-func (i *GitRepository) HostURLWithoutUser() string {
+func (i *Repository) HostURLWithoutUser() string {
 	u := i.URL
 	if u != "" {
 		u2, err := url.Parse(u)
@@ -92,14 +92,14 @@ func (i *GitRepository) HostURLWithoutUser() string {
 
 // PipelinePath returns the pipeline path for the master branch which can be used to query
 // pipeline logs in `jx get build logs myPipelinePath`
-func (i *GitRepository) PipelinePath() string {
+func (i *Repository) PipelinePath() string {
 	return i.Organisation + "/" + i.Name + "/master"
 }
 
 // ParseGitURL attempts to parse the given text as a URL or git URL-like string to determine
 // the protocol, host, organisation and name
-func ParseGitURL(text string) (*GitRepository, error) {
-	answer := GitRepository{
+func ParseGitURL(text string) (*Repository, error) {
+	answer := Repository{
 		URL: text,
 	}
 	u, err := url.Parse(text)
@@ -137,7 +137,7 @@ func ParseGitURL(text string) (*GitRepository, error) {
 	return nil, fmt.Errorf("Could not parse Git URL %s", text)
 }
 
-func parsePath(path string, info *GitRepository) (*GitRepository, error) {
+func parsePath(path string, info *Repository) (*Repository, error) {
 
 	// This is necessary for Bitbucket Server in some cases.
 	trimPath := strings.TrimPrefix(path, "/scm")

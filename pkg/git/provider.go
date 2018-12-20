@@ -13,11 +13,11 @@ import (
 	"gopkg.in/AlecAivazis/survey.v1/terminal"
 )
 
-type GitOrganisation struct {
+type Organisation struct {
 	Login string
 }
 
-type GitRepository struct {
+type Repository struct {
 	Name             string
 	AllowMergeCommit bool
 	HTMLURL          string
@@ -33,9 +33,9 @@ type GitRepository struct {
 	Project          string
 }
 
-type GitPullRequest struct {
+type PullRequest struct {
 	URL            string
-	Author         *GitUser
+	Author         *User
 	Owner          string
 	Repo           string
 	Number         *int
@@ -54,16 +54,16 @@ type GitPullRequest struct {
 	Body           string
 }
 
-type GitCommit struct {
+type Commit struct {
 	SHA       string
 	Message   string
-	Author    *GitUser
+	Author    *User
 	URL       string
 	Branch    string
-	Committer *GitUser
+	Committer *User
 }
 
-type GitIssue struct {
+type Issue struct {
 	URL           string
 	Owner         string
 	Repo          string
@@ -72,19 +72,19 @@ type GitIssue struct {
 	Title         string
 	Body          string
 	State         *string
-	Labels        []GitLabel
+	Labels        []Label
 	StatusesURL   *string
 	IssueURL      *string
 	CreatedAt     *time.Time
 	UpdatedAt     *time.Time
 	ClosedAt      *time.Time
 	IsPullRequest bool
-	User          *GitUser
-	ClosedBy      *GitUser
-	Assignees     []GitUser
+	User          *User
+	ClosedBy      *User
+	Assignees     []User
 }
 
-type GitUser struct {
+type User struct {
 	URL       string
 	Login     string
 	Name      string
@@ -92,30 +92,30 @@ type GitUser struct {
 	AvatarURL string
 }
 
-type GitRelease struct {
+type Release struct {
 	Name          string
 	TagName       string
 	Body          string
 	URL           string
 	HTMLURL       string
 	DownloadCount int
-	Assets        *[]GitReleaseAsset
+	Assets        *[]ReleaseAsset
 }
 
-// GitReleaseAsset represents a release stored in Git
-type GitReleaseAsset struct {
+// ReleaseAsset represents a release stored in Git
+type ReleaseAsset struct {
 	BrowserDownloadURL string
 	Name               string
 	ContentType        string
 }
 
-type GitLabel struct {
+type Label struct {
 	URL   string
 	Name  string
 	Color string
 }
 
-type GitRepoStatus struct {
+type RepoStatus struct {
 	ID      string
 	Context string
 	URL     string
@@ -131,23 +131,23 @@ type GitRepoStatus struct {
 	Description string
 }
 
-type GitPullRequestArguments struct {
-	Title         string
-	Body          string
-	Head          string
-	Base          string
-	GitRepository *GitRepository
+type PullRequestArguments struct {
+	Title      string
+	Body       string
+	Head       string
+	Base       string
+	Repository *Repository
 }
 
-type GitWebHookArguments struct {
+type WebhookArguments struct {
 	ID     int64
 	Owner  string
-	Repo   *GitRepository
+	Repo   *Repository
 	URL    string
 	Secret string
 }
 
-type GitFileContent struct {
+type FileContent struct {
 	Type        string
 	Encoding    string
 	Size        int
@@ -164,17 +164,17 @@ type GitFileContent struct {
 // PullRequestInfo describes a pull request that has been created
 type PullRequestInfo struct {
 	GitProvider          GitProvider
-	PullRequest          *GitPullRequest
-	PullRequestArguments *GitPullRequestArguments
+	PullRequest          *PullRequest
+	PullRequestArguments *PullRequestArguments
 }
 
 // IsClosed returns true if the PullRequest has been closed
-func (pr *GitPullRequest) IsClosed() bool {
+func (pr *PullRequest) IsClosed() bool {
 	return pr.ClosedAt != nil
 }
 
 // NumberString returns the string representation of the Pull Request number or blank if its missing
-func (pr *GitPullRequest) NumberString() string {
+func (pr *PullRequest) NumberString() string {
 	n := pr.Number
 	if n == nil {
 		return ""
@@ -233,14 +233,14 @@ func GetOrganizations(orgLister OrganisationLister, userName string) []string {
 	return orgNames
 }
 
-func PickRepositories(provider GitProvider, owner string, message string, selectAll bool, filter string, in terminal.FileReader, out terminal.FileWriter, errOut io.Writer) ([]*GitRepository, error) {
-	answer := []*GitRepository{}
+func PickRepositories(provider GitProvider, owner string, message string, selectAll bool, filter string, in terminal.FileReader, out terminal.FileWriter, errOut io.Writer) ([]*Repository, error) {
+	answer := []*Repository{}
 	repos, err := provider.ListRepositories(owner)
 	if err != nil {
 		return answer, err
 	}
 
-	repoMap := map[string]*GitRepository{}
+	repoMap := map[string]*Repository{}
 	allRepoNames := []string{}
 	for _, repo := range repos {
 		n := repo.Name
@@ -274,8 +274,8 @@ func PickRepositories(provider GitProvider, owner string, message string, select
 	return answer, err
 }
 
-// IsGitRepoStatusSuccess returns true if all the statuses are successful
-func IsGitRepoStatusSuccess(statuses ...*GitRepoStatus) bool {
+// IsRepoStatusSuccess returns true if all the statuses are successful
+func IsRepoStatusSuccess(statuses ...*RepoStatus) bool {
 	for _, status := range statuses {
 		if !status.IsSuccess() {
 			return false
@@ -284,8 +284,8 @@ func IsGitRepoStatusSuccess(statuses ...*GitRepoStatus) bool {
 	return true
 }
 
-// IsGitRepoStatusFailed returns true if any of the statuses have failed
-func IsGitRepoStatusFailed(statuses ...*GitRepoStatus) bool {
+// IsRepoStatusFailed returns true if any of the statuses have failed
+func IsRepoStatusFailed(statuses ...*RepoStatus) bool {
 	for _, status := range statuses {
 		if status.IsFailed() {
 			return true
@@ -294,19 +294,19 @@ func IsGitRepoStatusFailed(statuses ...*GitRepoStatus) bool {
 	return false
 }
 
-func (s *GitRepoStatus) IsSuccess() bool {
+func (s *RepoStatus) IsSuccess() bool {
 	return s.State == "success"
 }
 
-func (s *GitRepoStatus) IsFailed() bool {
+func (s *RepoStatus) IsFailed() bool {
 	return s.State == "error" || s.State == "failure"
 }
 
-// ToGitLabels converts the list of label names into an array of GitLabels
-func ToGitLabels(names []string) []GitLabel {
-	answer := []GitLabel{}
+// ToLabels converts the list of label names into an array of Labels
+func ToLabels(names []string) []Label {
+	answer := []Label{}
 	for _, n := range names {
-		answer = append(answer, GitLabel{Name: n})
+		answer = append(answer, Label{Name: n})
 	}
 	return answer
 }

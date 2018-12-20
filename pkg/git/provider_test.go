@@ -2,14 +2,10 @@ package git
 
 import (
 	"errors"
-	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 
-	"github.com/jenkins-x/jx/pkg/auth"
-	
 	mocks "github.com/jenkins-x/jx/pkg/gits/mocks"
 	utiltests "github.com/jenkins-x/jx/pkg/tests"
 	"github.com/jenkins-x/jx/pkg/util"
@@ -21,14 +17,14 @@ type FakeOrgLister struct {
 	fail     bool
 }
 
-func (l FakeOrgLister) ListOrganisations() ([]GitOrganisation, error) {
+func (l FakeOrgLister) ListOrganisations() ([]Organisation, error) {
 	if l.fail {
 		return nil, errors.New("fail")
 	}
 
-	orgs := make([]GitOrganisation, len(l.orgNames))
+	orgs := make([]Organisation, len(l.orgNames))
 	for _, v := range l.orgNames {
-		orgs = append(orgs, GitOrganisation{Login: v})
+		orgs = append(orgs, Organisation{Login: v})
 	}
 	return orgs, nil
 }
@@ -54,34 +50,7 @@ func Test_getOrganizations(t *testing.T) {
 	}
 }
 
-func createAuthConfigSvc(authConfig *auth.AuthConfig, fileName string) *auth.ConfigService {
-	authConfigSvc, _ := auth.NewFileAuthConfigService(fileName)
-	authConfigSvc.SetConfig(authConfig)
-	return &authConfigSvc
-}
-
-func createAuthConfig(currentServer *auth.AuthServer, piplineServer, pipelineUser string, servers ...*auth.AuthServer) *auth.AuthConfig {
-	servers = append(servers, currentServer)
-	return &auth.AuthConfig{
-		Servers:          servers,
-		CurrentServer:    currentServer.URL,
-		PipeLineServer:   piplineServer,
-		PipeLineUsername: pipelineUser,
-	}
-}
-
-func createAuthServer(url string, name string, kind string, currentUser *auth.UserAuth, users ...*auth.UserAuth) *auth.AuthServer {
-	users = append(users, currentUser)
-	return &auth.AuthServer{
-		URL:         url,
-		Name:        name,
-		Kind:        kind,
-		Users:       users,
-		CurrentUser: currentUser.Username,
-	}
-}
-
-func createGitProvider(t *testing.T, kind string, server *auth.AuthServer, user *auth.UserAuth, git Gitter) GitProvider {
+func createGitProvider(t *testing.T, kind string, git Gitter) GitProvider {
 	switch kind {
 	case KindGitHub:
 		gitHubProvider, err := NewGitHubProvider(server, user, git)
@@ -758,42 +727,6 @@ func TestCreateGitProviderFromURL(t *testing.T) {
 			var donech chan struct{}
 			if tc.setup != nil {
 				console, donech = tc.setup(t)
-			}
-
-			var users []*auth.UserAuth
-			var currUser *auth.UserAuth
-			var pipelineUser *auth.UserAuth
-			var server *auth.AuthServer
-			var authSvc *auth.ConfigService
-			configFile, err := ioutil.TempFile("", "test-config")
-			defer os.Remove(configFile.Name())
-			if tc.numUsers > 0 {
-				for u := 1; u <= tc.numUsers; u++ {
-					user := &auth.UserAuth{
-						Username: fmt.Sprintf("%s-%d", tc.username, u),
-						ApiToken: fmt.Sprintf("%s-%d", tc.apiToken, u),
-					}
-					users = append(users, user)
-				}
-				assert.True(t, len(users) > tc.currUser, "current user index should be smaller than number of users")
-				currUser = users[tc.currUser]
-				pipelineUser = users[tc.pipelineUser]
-				if len(users) > 1 {
-					users = append(users[:tc.currUser], users[tc.currUser+1:]...)
-				} else {
-					users = []*auth.UserAuth{}
-				}
-				server = createAuthServer(tc.hostURL, tc.Name, tc.providerKind, currUser, users...)
-				authSvc = createAuthConfigSvc(createAuthConfig(server, server.URL, pipelineUser.Username), configFile.Name())
-			} else {
-				currUser = &auth.UserAuth{
-					Username: tc.username,
-					ApiToken: tc.apiToken,
-				}
-				server = createAuthServer(tc.hostURL, tc.Name, tc.providerKind, currUser, users...)
-				s, err := auth.NewFileAuthConfigService(configFile.Name())
-				authSvc = &s
-				assert.NoError(t, err)
 			}
 
 			var result GitProvider

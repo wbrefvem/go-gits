@@ -1,18 +1,15 @@
 package git
 
 import (
-	"io"
 	"time"
 
-	"github.com/google/go-github/github"
-	"github.com/jenkins-x/jx/pkg/auth"
 	gitcfg "gopkg.in/src-d/go-git.v4/config"
 )
 
-// OrganisationLister returns a slice of GitOrganisation
+// OrganisationLister returns a slice of Organisation
 //go:generate pegomock generate github.com/wbrefvem/go-gits/pkg/git OrganisationLister -o mocks/organisation_lister.go --generate-matchers
 type OrganisationLister interface {
-	ListOrganisations() ([]GitOrganisation, error)
+	ListOrganisations() ([]Organisation, error)
 }
 
 // OrganisationChecker verifies if an user is member of an organization
@@ -26,41 +23,41 @@ type OrganisationChecker interface {
 type GitProvider interface {
 	OrganisationLister
 
-	ListRepositories(org string) ([]*GitRepository, error)
+	ListRepositories(org string) ([]*Repository, error)
 
-	CreateRepository(org string, name string, private bool) (*GitRepository, error)
+	CreateRepository(org string, name string, private bool) (*Repository, error)
 
-	GetRepository(org string, name string) (*GitRepository, error)
+	GetRepository(org string, name string) (*Repository, error)
 
 	DeleteRepository(org string, name string) error
 
-	ForkRepository(originalOrg string, name string, destinationOrg string) (*GitRepository, error)
+	ForkRepository(originalOrg string, name string, destinationOrg string) (*Repository, error)
 
-	RenameRepository(org string, name string, newName string) (*GitRepository, error)
+	RenameRepository(org string, name string, newName string) (*Repository, error)
 
 	ValidateRepositoryName(org string, name string) error
 
-	CreatePullRequest(data *GitPullRequestArguments) (*GitPullRequest, error)
+	CreatePullRequest(data *PullRequestArguments) (*PullRequest, error)
 
-	UpdatePullRequestStatus(pr *GitPullRequest) error
+	UpdatePullRequestStatus(pr *PullRequest) error
 
-	GetPullRequest(owner string, repo *GitRepository, number int) (*GitPullRequest, error)
+	GetPullRequest(owner string, repo *Repository, number int) (*PullRequest, error)
 
-	GetPullRequestCommits(owner string, repo *GitRepository, number int) ([]*GitCommit, error)
+	GetPullRequestCommits(owner string, repo *Repository, number int) ([]*Commit, error)
 
-	PullRequestLastCommitStatus(pr *GitPullRequest) (string, error)
+	PullRequestLastCommitStatus(pr *PullRequest) (string, error)
 
-	ListCommitStatus(org string, repo string, sha string) ([]*GitRepoStatus, error)
+	ListCommitStatus(org string, repo string, sha string) ([]*RepoStatus, error)
 
-	UpdateCommitStatus(org string, repo string, sha string, status *GitRepoStatus) (*GitRepoStatus, error)
+	UpdateCommitStatus(org string, repo string, sha string, status *RepoStatus) (*RepoStatus, error)
 
-	MergePullRequest(pr *GitPullRequest, message string) error
+	MergePullRequest(pr *PullRequest, message string) error
 
-	CreateWebHook(data *GitWebHookArguments) error
+	CreateWebHook(data *WebhookArguments) error
 
-	ListWebHooks(org string, repo string) ([]*GitWebHookArguments, error)
+	ListWebHooks(org string, repo string) ([]*WebhookArguments, error)
 
-	UpdateWebHook(data *GitWebHookArguments) error
+	UpdateWebHook(data *WebhookArguments) error
 
 	IsGitHub() bool
 
@@ -74,27 +71,27 @@ type GitProvider interface {
 
 	Kind() string
 
-	GetIssue(org string, name string, number int) (*GitIssue, error)
+	GetIssue(org string, name string, number int) (*Issue, error)
 
 	IssueURL(org string, name string, number int, isPull bool) string
 
-	SearchIssues(org string, name string, query string) ([]*GitIssue, error)
+	SearchIssues(org string, name string, query string) ([]*Issue, error)
 
-	SearchIssuesClosedSince(org string, name string, t time.Time) ([]*GitIssue, error)
+	SearchIssuesClosedSince(org string, name string, t time.Time) ([]*Issue, error)
 
-	CreateIssue(owner string, repo string, issue *GitIssue) (*GitIssue, error)
+	CreateIssue(owner string, repo string, issue *Issue) (*Issue, error)
 
 	HasIssues() bool
 
-	AddPRComment(pr *GitPullRequest, comment string) error
+	AddPRComment(pr *PullRequest, comment string) error
 
 	CreateIssueComment(owner string, repo string, number int, comment string) error
 
-	UpdateRelease(owner string, repo string, tag string, releaseInfo *GitRelease) error
+	UpdateRelease(owner string, repo string, tag string, releaseInfo *Release) error
 
-	ListReleases(org string, name string) ([]*GitRelease, error)
+	ListReleases(org string, name string) ([]*Release, error)
 
-	GetContent(org string, name string, path string, ref string) (*GitFileContent, error)
+	GetContent(org string, name string, path string, ref string) (*FileContent, error)
 
 	// returns the path relative to the Jenkins URL to trigger webhooks on this kind of repository
 	//
@@ -130,17 +127,8 @@ type GitProvider interface {
 	// Returns the current username
 	CurrentUsername() string
 
-	// Returns the current user auth
-	UserAuth() auth.UserAuth
-
 	// Returns user info, if possible
-	UserInfo(username string) *GitUser
-
-	AddCollaborator(string, string, string) error
-	// TODO Refactor to remove bespoke types when we implement another provider
-	ListInvitations() ([]*github.RepositoryInvitation, *github.Response, error)
-	// TODO Refactor to remove bespoke types when we implement another provider
-	AcceptInvitation(int64) (*github.Response, error)
+	UserInfo(username string) *User
 
 	AccessTokenURL() string
 }
@@ -149,11 +137,10 @@ type GitProvider interface {
 //go:generate pegomock generate github.com/wbrefvem/go-gits/pkg/git Gitter -o mocks/gitter.go --generate-matchers
 type Gitter interface {
 	FindGitConfigDir(dir string) (string, string, error)
-	PrintCreateRepositoryGenerateAccessToken(server *auth.AuthServer, username string, o io.Writer)
 
 	Status(dir string) error
 	Server(dir string) (string, error)
-	Info(dir string) (*GitRepository, error)
+	Info(dir string) (*Repository, error)
 	IsFork(dir string) (bool, error)
 	Version() (string, error)
 	RepoName(org, repoName string) string
@@ -170,7 +157,7 @@ type Gitter interface {
 	Push(dir string) error
 	PushMaster(dir string) error
 	PushTag(dir string, tag string) error
-	CreatePushURL(cloneURL string, userAuth *auth.UserAuth) (string, error)
+	CreatePushURL(cloneURL, username, token string) (string, error)
 	ForcePushBranch(dir string, localBranch string, remoteBranch string) error
 	CloneOrPull(url string, directory string) error
 	Pull(dir string) error

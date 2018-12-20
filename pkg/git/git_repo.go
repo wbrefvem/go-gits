@@ -29,12 +29,12 @@ type GitRepositoryOptions struct {
 }
 
 // GetRepository returns the repository if it already exists
-func (d *CreateRepoData) GetRepository() (*GitRepository, error) {
+func (d *CreateRepoData) GetRepository() (*Repository, error) {
 	return d.GitProvider.GetRepository(d.Organisation, d.RepoName)
 }
 
 // CreateRepository creates the repository - failing if it already exists
-func (d *CreateRepoData) CreateRepository() (*GitRepository, error) {
+func (d *CreateRepoData) CreateRepository() (*Repository, error) {
 	return d.GitProvider.CreateRepository(d.Organisation, d.RepoName, d.PrivateRepo)
 }
 

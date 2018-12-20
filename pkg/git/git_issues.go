@@ -7,7 +7,7 @@ import (
 )
 
 // IsClosedSince returns true if the issue has been closed since the given da
-func (i *GitIssue) IsClosedSince(t time.Time) bool {
+func (i *Issue) IsClosedSince(t time.Time) bool {
 	t2 := i.ClosedAt
 	state := i.State
 	if t2 != nil && state != nil {
@@ -18,7 +18,7 @@ func (i *GitIssue) IsClosedSince(t time.Time) bool {
 }
 
 // Name returns the textual name of the issue
-func (i *GitIssue) Name() string {
+func (i *Issue) Name() string {
 	if i.Key != "" {
 		return i.Key
 	}
@@ -30,8 +30,8 @@ func (i *GitIssue) Name() string {
 }
 
 // FilterIssuesClosedSince returns a filtered slice of all the issues closed since the given date
-func FilterIssuesClosedSince(issues []*GitIssue, t time.Time) []*GitIssue {
-	answer := []*GitIssue{}
+func FilterIssuesClosedSince(issues []*Issue, t time.Time) []*Issue {
+	answer := []*Issue{}
 	for _, issue := range issues {
 		if issue != nil && issue.IsClosedSince(t) {
 			answer = append(answer, issue)

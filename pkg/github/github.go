@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/go-github/github"
-	"github.com/jenkins-x/jx/pkg/auth"
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/jenkins-x/jx/pkg/util"
 	"github.com/wbrefvem/go-gits/pkg/git"
@@ -24,30 +23,29 @@ type GitHubProvider struct {
 	Username string
 	Client   *github.Client
 	Context  context.Context
-
-	Server auth.AuthServer
-	User   auth.UserAuth
-	Git    git.Gitter
+	URL      string
+	Git      git.Gitter
+	Name     string
 }
 
-func NewGitHubProvider(server *auth.AuthServer, user *auth.UserAuth, git git.Gitter) (git.GitProvider, error) {
+func NewGitHubProvider(username, serverURL, token, providerName string, git git.Gitter) (git.GitProvider, error) {
 	ctx := context.Background()
 
 	provider := GitHubProvider{
-		Server:   *server,
-		User:     *user,
+		URL:      serverURL,
+		Name:     providerName,
 		Context:  ctx,
-		Username: user.Username,
+		Username: username,
 		Git:      git,
 	}
 
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: user.ApiToken},
+		&oauth2.Token{AccessToken: token},
 	)
 	tc := oauth2.NewClient(ctx, ts)
 
 	var err error
-	u := server.URL
+	u := serverURL
 	if IsGitHubServerURL(u) {
 		provider.Client = github.NewClient(tc)
 	} else {
@@ -71,7 +69,7 @@ func GitHubEnterpriseApiEndpointURL(u string) string {
 // GetEnterpriseApiURL returns the github enterprise API URL or blank if this
 // provider is for the https://github.com service
 func (p *GitHubProvider) GetEnterpriseApiURL() string {
-	u := p.Server.URL
+	u := p.URL
 	if IsGitHubServerURL(u) {
 		return ""
 	}
@@ -83,8 +81,8 @@ func IsGitHubServerURL(u string) bool {
 	return u == "" || u == "https://github.com" || u == "http://github.com"
 }
 
-func (p *GitHubProvider) ListOrganisations() ([]git.GitOrganisation, error) {
-	answer := []git.GitOrganisation{}
+func (p *GitHubProvider) ListOrganisations() ([]git.Organisation, error) {
+	answer := []git.Organisation{}
 	options := github.ListOptions{
 		Page:    0,
 		PerPage: pageSize,
@@ -98,7 +96,7 @@ func (p *GitHubProvider) ListOrganisations() ([]git.GitOrganisation, error) {
 		for _, org := range orgs {
 			name := org.Login
 			if name != nil {
-				o := git.GitOrganisation{
+				o := git.Organisation{
 					Login: *name,
 				}
 				answer = append(answer, o)
@@ -123,9 +121,9 @@ func (p *GitHubProvider) IsUserInOrganisation(user string, org string) (bool, er
 	return false, nil
 }
 
-func (p *GitHubProvider) ListRepositories(org string) ([]*git.GitRepository, error) {
+func (p *GitHubProvider) ListRepositories(org string) ([]*git.Repository, error) {
 	owner := org
-	answer := []*git.GitRepository{}
+	answer := []*git.Repository{}
 	options := &github.RepositoryListByOrgOptions{
 		ListOptions: github.ListOptions{
 			Page:    0,
@@ -158,12 +156,12 @@ func (p *GitHubProvider) ListRepositories(org string) ([]*git.GitRepository, err
 	return answer, nil
 }
 
-func (p *GitHubProvider) ListReleases(org string, name string) ([]*git.GitRelease, error) {
+func (p *GitHubProvider) ListReleases(org string, name string) ([]*git.Release, error) {
 	owner := org
 	if owner == "" {
 		owner = p.Username
 	}
-	answer := []*git.GitRelease{}
+	answer := []*git.Release{}
 	options := &github.ListOptions{
 		Page:    0,
 		PerPage: pageSize,
@@ -184,21 +182,21 @@ func (p *GitHubProvider) ListReleases(org string, name string) ([]*git.GitReleas
 	return answer, nil
 }
 
-func toGitHubRelease(org string, name string, release *github.RepositoryRelease) *git.GitRelease {
+func toGitHubRelease(org string, name string, release *github.RepositoryRelease) *git.Release {
 	totalDownloadCount := 0
-	assets := make([]git.GitReleaseAsset, 0)
+	assets := make([]git.ReleaseAsset, 0)
 	for _, asset := range release.Assets {
 		p := asset.DownloadCount
 		if p != nil {
 			totalDownloadCount = totalDownloadCount + *p
 		}
-		assets = append(assets, git.GitReleaseAsset{
+		assets = append(assets, git.ReleaseAsset{
 			Name:               asText(asset.Name),
 			BrowserDownloadURL: asText(asset.BrowserDownloadURL),
 			ContentType:        asText(asset.ContentType),
 		})
 	}
-	return &git.GitRelease{
+	return &git.Release{
 		Name:          asText(release.Name),
 		TagName:       asText(release.TagName),
 		Body:          asText(release.Body),
@@ -209,7 +207,7 @@ func toGitHubRelease(org string, name string, release *github.RepositoryRelease)
 	}
 }
 
-func (p *GitHubProvider) GetRepository(org string, name string) (*git.GitRepository, error) {
+func (p *GitHubProvider) GetRepository(org string, name string) (*git.Repository, error) {
 	repo, _, err := p.Client.Repositories.Get(p.Context, org, name)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get repository %s/%s due to: %s", org, name, err)
@@ -217,7 +215,7 @@ func (p *GitHubProvider) GetRepository(org string, name string) (*git.GitReposit
 	return toGitHubRepo(name, repo), nil
 }
 
-func (p *GitHubProvider) CreateRepository(org string, name string, private bool) (*git.GitRepository, error) {
+func (p *GitHubProvider) CreateRepository(org string, name string, private bool) (*git.Repository, error) {
 	repoConfig := &github.Repository{
 		Name:    github.String(name),
 		Private: github.Bool(private),
@@ -244,8 +242,8 @@ func (p *GitHubProvider) DeleteRepository(org string, name string) error {
 	return err
 }
 
-func toGitHubRepo(name string, repo *github.Repository) *git.GitRepository {
-	return &git.GitRepository{
+func toGitHubRepo(name string, repo *github.Repository) *git.Repository {
+	return &git.Repository{
 		Name:             name,
 		AllowMergeCommit: asBool(repo.AllowMergeCommit),
 		CloneURL:         asText(repo.CloneURL),
@@ -257,7 +255,7 @@ func toGitHubRepo(name string, repo *github.Repository) *git.GitRepository {
 	}
 }
 
-func (p *GitHubProvider) ForkRepository(originalOrg string, name string, destinationOrg string) (*git.GitRepository, error) {
+func (p *GitHubProvider) ForkRepository(originalOrg string, name string, destinationOrg string) (*git.Repository, error) {
 	repoConfig := &github.RepositoryCreateForkOptions{}
 	if destinationOrg != "" {
 		repoConfig.Organization = destinationOrg
@@ -292,7 +290,7 @@ func (p *GitHubProvider) ForkRepository(originalOrg string, name string, destina
 			return nil, fmt.Errorf("Failed to fork repository %s/%s%s due to: %s", originalOrg, name, msg, err)
 		}
 	}
-	answer := &git.GitRepository{
+	answer := &git.Repository{
 		Name:             name,
 		AllowMergeCommit: asBool(repo.AllowMergeCommit),
 		CloneURL:         asText(repo.CloneURL),
@@ -302,7 +300,7 @@ func (p *GitHubProvider) ForkRepository(originalOrg string, name string, destina
 	return answer, nil
 }
 
-func (p *GitHubProvider) CreateWebHook(data *git.GitWebHookArguments) error {
+func (p *GitHubProvider) CreateWebHook(data *git.WebhookArguments) error {
 	owner := data.Owner
 	if owner == "" {
 		owner = p.Username
@@ -344,8 +342,8 @@ func (p *GitHubProvider) CreateWebHook(data *git.GitWebHookArguments) error {
 	return err
 }
 
-func (p *GitHubProvider) ListWebHooks(owner string, repo string) ([]*git.GitWebHookArguments, error) {
-	webHooks := []*git.GitWebHookArguments{}
+func (p *GitHubProvider) ListWebHooks(owner string, repo string) ([]*git.WebhookArguments, error) {
+	webHooks := []*git.WebhookArguments{}
 
 	if owner == "" {
 		owner = p.Username
@@ -363,7 +361,7 @@ func (p *GitHubProvider) ListWebHooks(owner string, repo string) ([]*git.GitWebH
 		c := hook.Config["url"]
 		s, ok := c.(string)
 		if ok {
-			webHook := &git.GitWebHookArguments{
+			webHook := &git.WebhookArguments{
 				ID:    hook.GetID(),
 				Owner: owner,
 				Repo:  nil,
@@ -376,7 +374,7 @@ func (p *GitHubProvider) ListWebHooks(owner string, repo string) ([]*git.GitWebH
 	return webHooks, nil
 }
 
-func (p *GitHubProvider) UpdateWebHook(data *git.GitWebHookArguments) error {
+func (p *GitHubProvider) UpdateWebHook(data *git.WebhookArguments) error {
 	owner := data.Owner
 	if owner == "" {
 		owner = p.Username
@@ -428,9 +426,9 @@ func (p *GitHubProvider) UpdateWebHook(data *git.GitWebHookArguments) error {
 	return err
 }
 
-func (p *GitHubProvider) CreatePullRequest(data *git.GitPullRequestArguments) (*git.GitPullRequest, error) {
-	owner := data.GitRepository.Organisation
-	repo := data.GitRepository.Name
+func (p *GitHubProvider) CreatePullRequest(data *git.PullRequestArguments) (*git.PullRequest, error) {
+	owner := data.Repository.Organisation
+	repo := data.Repository.Name
 	title := data.Title
 	body := data.Body
 	head := data.Head
@@ -452,7 +450,7 @@ func (p *GitHubProvider) CreatePullRequest(data *git.GitPullRequestArguments) (*
 	if err != nil {
 		return nil, err
 	}
-	return &git.GitPullRequest{
+	return &git.PullRequest{
 		URL:    notNullString(pr.HTMLURL),
 		Owner:  owner,
 		Repo:   repo,
@@ -460,9 +458,9 @@ func (p *GitHubProvider) CreatePullRequest(data *git.GitPullRequestArguments) (*
 	}, nil
 }
 
-func (p *GitHubProvider) UpdatePullRequestStatus(pr *git.GitPullRequest) error {
+func (p *GitHubProvider) UpdatePullRequestStatus(pr *git.PullRequest) error {
 	if pr.Number == nil {
-		return fmt.Errorf("Missing Number for git.GitPullRequest %#v", pr)
+		return fmt.Errorf("Missing Number for git.PullRequest %#v", pr)
 	}
 	n := *pr.Number
 	result, _, err := p.Client.PullRequests.Get(p.Context, pr.Owner, pr.Repo, n)
@@ -476,7 +474,7 @@ func (p *GitHubProvider) UpdatePullRequestStatus(pr *git.GitPullRequest) error {
 		pr.LastCommitSha = ""
 	}
 	if pr.Author == nil && result.User != nil && result.User.Login != nil {
-		pr.Author = &git.GitUser{
+		pr.Author = &git.User{
 			Login: *result.User.Login,
 		}
 	}
@@ -517,8 +515,8 @@ func (p *GitHubProvider) UpdatePullRequestStatus(pr *git.GitPullRequest) error {
 	return nil
 }
 
-func (p *GitHubProvider) GetPullRequest(owner string, repo *git.GitRepository, number int) (*git.GitPullRequest, error) {
-	pr := &git.GitPullRequest{
+func (p *GitHubProvider) GetPullRequest(owner string, repo *git.Repository, number int) (*git.PullRequest, error) {
+	pr := &git.PullRequest{
 		Owner:  owner,
 		Repo:   repo.Name,
 		Number: &number,
@@ -540,7 +538,7 @@ func (p *GitHubProvider) GetPullRequest(owner string, repo *git.GitRepository, n
 	return pr, err
 }
 
-func (p *GitHubProvider) GetPullRequestCommits(owner string, repository *git.GitRepository, number int) ([]*git.GitCommit, error) {
+func (p *GitHubProvider) GetPullRequestCommits(owner string, repository *git.Repository, number int) ([]*git.Commit, error) {
 	repo := repository.Name
 	commits, _, err := p.Client.PullRequests.ListCommits(p.Context, owner, repo, number, nil)
 
@@ -548,7 +546,7 @@ func (p *GitHubProvider) GetPullRequestCommits(owner string, repository *git.Git
 		return nil, err
 	}
 
-	answer := []*git.GitCommit{}
+	answer := []*git.Commit{}
 
 	for _, commit := range commits {
 		message := ""
@@ -557,11 +555,11 @@ func (p *GitHubProvider) GetPullRequestCommits(owner string, repository *git.Git
 			if commit.Author != nil {
 				author := commit.Author
 
-				summary := &git.GitCommit{
+				summary := &git.Commit{
 					Message: message,
 					URL:     commit.GetURL(),
 					SHA:     commit.GetSHA(),
-					Author: &git.GitUser{
+					Author: &git.User{
 						Login:     author.GetLogin(),
 						Email:     author.GetEmail(),
 						Name:      author.GetName(),
@@ -600,9 +598,9 @@ func (p *GitHubProvider) GetPullRequestCommits(owner string, repository *git.Git
 	return answer, nil
 }
 
-func (p *GitHubProvider) MergePullRequest(pr *git.GitPullRequest, message string) error {
+func (p *GitHubProvider) MergePullRequest(pr *git.PullRequest, message string) error {
 	if pr.Number == nil {
-		return fmt.Errorf("Missing Number for git.GitPullRequest %#v", pr)
+		return fmt.Errorf("Missing Number for git.PullRequest %#v", pr)
 	}
 	n := *pr.Number
 	ref := pr.LastCommitSha
@@ -619,9 +617,9 @@ func (p *GitHubProvider) MergePullRequest(pr *git.GitPullRequest, message string
 	return nil
 }
 
-func (p *GitHubProvider) AddPRComment(pr *git.GitPullRequest, comment string) error {
+func (p *GitHubProvider) AddPRComment(pr *git.PullRequest, comment string) error {
 	if pr.Number == nil {
-		return fmt.Errorf("Missing Number for git.GitPullRequest %#v", pr)
+		return fmt.Errorf("Missing Number for git.PullRequest %#v", pr)
 	}
 	n := *pr.Number
 
@@ -646,7 +644,7 @@ func (p *GitHubProvider) CreateIssueComment(owner string, repo string, number in
 	return nil
 }
 
-func (p *GitHubProvider) PullRequestLastCommitStatus(pr *git.GitPullRequest) (string, error) {
+func (p *GitHubProvider) PullRequestLastCommitStatus(pr *git.PullRequest) (string, error) {
 	ref := pr.LastCommitSha
 	if ref == "" {
 		return "", fmt.Errorf("Missing String for LastCommitSha %#v", pr)
@@ -663,8 +661,8 @@ func (p *GitHubProvider) PullRequestLastCommitStatus(pr *git.GitPullRequest) (st
 	return "", fmt.Errorf("Could not find a status for repository %s/%s with ref %s", pr.Owner, pr.Repo, ref)
 }
 
-func (p *GitHubProvider) ListCommitStatus(org string, repo string, sha string) ([]*git.GitRepoStatus, error) {
-	answer := []*git.GitRepoStatus{}
+func (p *GitHubProvider) ListCommitStatus(org string, repo string, sha string) ([]*git.RepoStatus, error) {
+	answer := []*git.RepoStatus{}
 	if sha == "" {
 		return answer, fmt.Errorf("Missing String for sha %s/%s", org, repo)
 	}
@@ -673,7 +671,7 @@ func (p *GitHubProvider) ListCommitStatus(org string, repo string, sha string) (
 		return answer, fmt.Errorf("Could not find a status for repository %s/%s with ref %s", org, repo, sha)
 	}
 	for _, result := range results {
-		status := &git.GitRepoStatus{
+		status := &git.RepoStatus{
 			ID:          strconv.FormatInt(notNullInt64(result.ID), 10),
 			Context:     notNullString(result.Context),
 			URL:         notNullString(result.URL),
@@ -686,12 +684,12 @@ func (p *GitHubProvider) ListCommitStatus(org string, repo string, sha string) (
 	return answer, nil
 }
 
-func (p *GitHubProvider) UpdateCommitStatus(org string, repo string, sha string, status *git.GitRepoStatus) (*git.GitRepoStatus, error) {
+func (p *GitHubProvider) UpdateCommitStatus(org string, repo string, sha string, status *git.RepoStatus) (*git.RepoStatus, error) {
 	id64 := int64(0)
 	if status.ID != "" {
 		id, err := strconv.Atoi(status.ID)
 		if err != nil {
-			return &git.GitRepoStatus{}, err
+			return &git.RepoStatus{}, err
 		}
 		id64 = int64(id)
 	}
@@ -705,9 +703,9 @@ func (p *GitHubProvider) UpdateCommitStatus(org string, repo string, sha string,
 	}
 	result, _, err := p.Client.Repositories.CreateStatus(p.Context, org, repo, sha, &repoStatus)
 	if err != nil {
-		return &git.GitRepoStatus{}, err
+		return &git.RepoStatus{}, err
 	}
-	return &git.GitRepoStatus{
+	return &git.RepoStatus{
 		ID:          strconv.FormatInt(notNullInt64(result.ID), 10),
 		Context:     notNullString(result.Context),
 		URL:         notNullString(result.URL),
@@ -717,13 +715,13 @@ func (p *GitHubProvider) UpdateCommitStatus(org string, repo string, sha string,
 	}, nil
 }
 
-func (p *GitHubProvider) GetContent(org string, name string, path string, ref string) (*git.GitFileContent, error) {
+func (p *GitHubProvider) GetContent(org string, name string, path string, ref string) (*git.FileContent, error) {
 	fileContent, _, _, err := p.Client.Repositories.GetContents(p.Context, org, name, path, &github.RepositoryContentGetOptions{Ref: ref})
 	if err != nil {
 		return nil, err
 	}
 	if fileContent != nil {
-		return &git.GitFileContent{
+		return &git.FileContent{
 			Name:        notNullString(fileContent.Name),
 			Url:         notNullString(fileContent.URL),
 			Path:        notNullString(fileContent.Path),
@@ -762,7 +760,7 @@ func notNullString(tp *string) string {
 	return *tp
 }
 
-func (p *GitHubProvider) RenameRepository(org string, name string, newName string) (*git.GitRepository, error) {
+func (p *GitHubProvider) RenameRepository(org string, name string, newName string) (*git.Repository, error) {
 	if org == "" {
 		org = p.Username
 	}
@@ -773,7 +771,7 @@ func (p *GitHubProvider) RenameRepository(org string, name string, newName strin
 	if err != nil {
 		return nil, fmt.Errorf("Failed to edit repository %s/%s due to: %s", org, name, err)
 	}
-	answer := &git.GitRepository{
+	answer := &git.Repository{
 		Name:             name,
 		AllowMergeCommit: asBool(repo.AllowMergeCommit),
 		CloneURL:         asText(repo.CloneURL),
@@ -794,7 +792,7 @@ func (p *GitHubProvider) ValidateRepositoryName(org string, name string) error {
 	return err
 }
 
-func (p *GitHubProvider) UpdateRelease(owner string, repo string, tag string, releaseInfo *git.GitRelease) error {
+func (p *GitHubProvider) UpdateRelease(owner string, repo string, tag string, releaseInfo *git.Release) error {
 	release := &github.RepositoryRelease{}
 	rel, r, err := p.Client.Repositories.GetReleaseByTag(p.Context, owner, repo, tag)
 
@@ -842,7 +840,7 @@ func (p *GitHubProvider) UpdateRelease(owner string, repo string, tag string, re
 	return err
 }
 
-func (p *GitHubProvider) GetIssue(org string, name string, number int) (*git.GitIssue, error) {
+func (p *GitHubProvider) GetIssue(org string, name string, number int) (*git.Issue, error) {
 	i, r, err := p.Client.Issues.Get(p.Context, org, name, number)
 	if r != nil && r.StatusCode == 404 {
 		return nil, nil
@@ -853,12 +851,12 @@ func (p *GitHubProvider) GetIssue(org string, name string, number int) (*git.Git
 	return p.fromGithubIssue(org, name, number, i)
 }
 
-func (p *GitHubProvider) SearchIssues(org string, name string, filter string) ([]*git.GitIssue, error) {
+func (p *GitHubProvider) SearchIssues(org string, name string, filter string) ([]*git.Issue, error) {
 	opts := &github.IssueListByRepoOptions{}
 	return p.searchIssuesWithOptions(org, name, opts)
 }
 
-func (p *GitHubProvider) SearchIssuesClosedSince(org string, name string, t time.Time) ([]*git.GitIssue, error) {
+func (p *GitHubProvider) SearchIssuesClosedSince(org string, name string, t time.Time) ([]*git.Issue, error) {
 	opts := &github.IssueListByRepoOptions{
 		State: "closed",
 	}
@@ -870,10 +868,10 @@ func (p *GitHubProvider) SearchIssuesClosedSince(org string, name string, t time
 	return issues, nil
 }
 
-func (p *GitHubProvider) searchIssuesWithOptions(org string, name string, opts *github.IssueListByRepoOptions) ([]*git.GitIssue, error) {
+func (p *GitHubProvider) searchIssuesWithOptions(org string, name string, opts *github.IssueListByRepoOptions) ([]*git.Issue, error) {
 	opts.Page = 0
 	opts.PerPage = pageSize
-	answer := []*git.GitIssue{}
+	answer := []*git.Issue{}
 	for {
 		issues, r, err := p.Client.Issues.ListByRepo(p.Context, org, name, opts)
 		if r != nil && r.StatusCode == 404 {
@@ -902,7 +900,7 @@ func (p *GitHubProvider) searchIssuesWithOptions(org string, name string, opts *
 	return answer, nil
 }
 
-func (p *GitHubProvider) CreateIssue(owner string, repo string, issue *git.GitIssue) (*git.GitIssue, error) {
+func (p *GitHubProvider) CreateIssue(owner string, repo string, issue *git.Issue) (*git.Issue, error) {
 	labels := []string{}
 	for _, label := range issue.Labels {
 		name := label.Name
@@ -926,19 +924,19 @@ func (p *GitHubProvider) CreateIssue(owner string, repo string, issue *git.GitIs
 	return p.fromGithubIssue(owner, repo, number, i)
 }
 
-func (p *GitHubProvider) fromGithubIssue(org string, name string, number int, i *github.Issue) (*git.GitIssue, error) {
+func (p *GitHubProvider) fromGithubIssue(org string, name string, number int, i *github.Issue) (*git.Issue, error) {
 	isPull := i.IsPullRequest()
 	url := p.IssueURL(org, name, number, isPull)
 
-	labels := []git.GitLabel{}
+	labels := []git.Label{}
 	for _, label := range i.Labels {
 		labels = append(labels, toGitHubLabel(&label))
 	}
-	assignees := []git.GitUser{}
+	assignees := []git.User{}
 	for _, assignee := range i.Assignees {
 		assignees = append(assignees, *toGitHubUser(assignee))
 	}
-	return &git.GitIssue{
+	return &git.Issue{
 		Number:        &number,
 		URL:           url,
 		State:         i.State,
@@ -956,7 +954,7 @@ func (p *GitHubProvider) fromGithubIssue(org string, name string, number int, i 
 }
 
 func (p *GitHubProvider) IssueURL(org string, name string, number int, isPull bool) string {
-	serverPrefix := p.Server.URL
+	serverPrefix := p.URL
 	if !strings.HasPrefix(serverPrefix, "https://") {
 		serverPrefix = "https://" + serverPrefix
 	}
@@ -968,11 +966,11 @@ func (p *GitHubProvider) IssueURL(org string, name string, number int, isPull bo
 	return url
 }
 
-func toGitHubUser(user *github.User) *git.GitUser {
+func toGitHubUser(user *github.User) *git.User {
 	if user == nil {
 		return nil
 	}
-	return &git.GitUser{
+	return &git.User{
 		Login:     asText(user.Login),
 		Name:      asText(user.Name),
 		Email:     asText(user.Email),
@@ -980,8 +978,8 @@ func toGitHubUser(user *github.User) *git.GitUser {
 	}
 }
 
-func toGitHubLabel(label *github.Label) git.GitLabel {
-	return git.GitLabel{
+func toGitHubLabel(label *github.Label) git.Label {
+	return git.Label{
 		Name:  asText(label.Name),
 		Color: asText(label.Color),
 		URL:   asText(label.URL),
@@ -1029,11 +1027,11 @@ func (p *GitHubProvider) AccessTokenURL() string {
 }
 
 func (p *GitHubProvider) Label() string {
-	return p.Server.Label()
+	return p.Name
 }
 
 func (p *GitHubProvider) ServerURL() string {
-	return p.Server.URL
+	return p.URL
 }
 
 func (p *GitHubProvider) BranchArchiveURL(org string, name string, branch string) string {
@@ -1044,18 +1042,14 @@ func (p *GitHubProvider) CurrentUsername() string {
 	return p.Username
 }
 
-func (p *GitHubProvider) UserAuth() auth.UserAuth {
-	return p.User
-}
-
-func (p *GitHubProvider) UserInfo(username string) *git.GitUser {
+func (p *GitHubProvider) UserInfo(username string) *git.User {
 	user, _, err := p.Client.Users.Get(p.Context, username)
 	if user == nil || err != nil {
 		log.Error("Unable to fetch user info for " + username + "\n")
 		return nil
 	}
 
-	return &git.GitUser{
+	return &git.User{
 		Login:     username,
 		Name:      user.GetName(),
 		AvatarURL: user.GetAvatarURL(),

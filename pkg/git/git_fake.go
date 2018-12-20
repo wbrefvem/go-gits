@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jenkins-x/jx/pkg/auth"
 	"github.com/jenkins-x/jx/pkg/util"
 	gitcfg "gopkg.in/src-d/go-git.v4/config"
 )
@@ -32,11 +31,11 @@ type GitFake struct {
 	Branches       []string
 	BranchesRemote []string
 	CurrentBranch  string
-	RepoInfo       GitRepository
+	RepoInfo       Repository
 	Fork           bool
 	GitVersion     string
-	GitUser        GitUser
-	Commits        []GitCommit
+	User           User
+	Commits        []Commit
 	Changes        bool
 	GitTags        []GitTag
 	Revision       string
@@ -54,7 +53,7 @@ func (g *GitFake) FindGitConfigDir(dir string) (string, string, error) {
 }
 
 // PrintCreateRepositoryGenerateAccessToken prints the generate access token URL
-func (g *GitFake) PrintCreateRepositoryGenerateAccessToken(server *auth.AuthServer, username string, o io.Writer) {
+func (g *GitFake) PrintCreateRepositoryGenerateAccessToken(username string, o io.Writer) {
 	fmt.Fprintf(o, "Access token URL: %s\n\n", g.AccessTokenURL())
 }
 
@@ -69,7 +68,7 @@ func (g *GitFake) Server(dir string) (string, error) {
 }
 
 // Info returns the git repo info
-func (g *GitFake) Info(dir string) (*GitRepository, error) {
+func (g *GitFake) Info(dir string) (*Repository, error) {
 	return &g.RepoInfo, nil
 }
 
@@ -93,23 +92,23 @@ func (g *GitFake) RepoName(org string, repoName string) string {
 
 // Username returns the current user name
 func (g *GitFake) Username(dir string) (string, error) {
-	return g.GitUser.Name, nil
+	return g.User.Name, nil
 }
 
 // SetUsername sets the username
 func (g *GitFake) SetUsername(dir string, username string) error {
-	g.GitUser.Name = username
+	g.User.Name = username
 	return nil
 }
 
 // Email returns the current user git email address
 func (g *GitFake) Email(dir string) (string, error) {
-	return g.GitUser.Email, nil
+	return g.User.Email, nil
 }
 
 // SetEmail sets the git email address
 func (g *GitFake) SetEmail(dir string, email string) error {
-	g.GitUser.Email = email
+	g.User.Email = email
 	return nil
 }
 
@@ -154,13 +153,13 @@ func (g *GitFake) PushTag(dir string, tag string) error {
 }
 
 // CreatePushURL creates a Push URL
-func (g *GitFake) CreatePushURL(cloneURL string, userAuth *auth.UserAuth) (string, error) {
+func (g *GitFake) CreatePushURL(cloneURL, username, token string) (string, error) {
 	u, err := url.Parse(cloneURL)
 	if err != nil {
 		return cloneURL, nil
 	}
-	if userAuth.Username != "" || userAuth.ApiToken != "" {
-		u.User = url.UserPassword(userAuth.Username, userAuth.ApiToken)
+	if username != "" || token != "" {
+		u.User = url.UserPassword(username, token)
 		return u.String(), nil
 	}
 	return cloneURL, nil
@@ -384,13 +383,13 @@ func (g *GitFake) Add(dir string, args ...string) error {
 
 // CommitIfChanges git commit if there are changes
 func (g *GitFake) CommitIfChanges(dir string, message string) error {
-	commit := GitCommit{
+	commit := Commit{
 		SHA:       "",
 		Message:   message,
-		Author:    &g.GitUser,
+		Author:    &g.User,
 		URL:       g.RepoInfo.URL,
 		Branch:    g.CurrentBranch,
-		Committer: &g.GitUser,
+		Committer: &g.User,
 	}
 	g.Commits = append(g.Commits, commit)
 	return nil

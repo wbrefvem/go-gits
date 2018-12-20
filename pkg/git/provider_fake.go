@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/google/go-github/github"
-	"github.com/jenkins-x/jx/pkg/auth"
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/jenkins-x/jx/pkg/util"
 )
@@ -35,61 +34,77 @@ const (
 	CommitStatusFailure              = "failure"
 )
 
+type FakeServer struct {
+	URL string
+}
+
+type FakeUser struct {
+	Username string
+	User
+}
+
 type FakeCommit struct {
-	Commit *GitCommit
+	Commit *Commit
 	Status CommitStatus
 }
 
 type FakePullRequest struct {
-	PullRequest *GitPullRequest
+	PullRequest *PullRequest
 	Commits     []*FakeCommit
 	Comment     string
 }
 
 type FakeIssue struct {
-	Issue   *GitIssue
+	Issue   *Issue
 	Comment string
 }
 
 type FakeRepository struct {
 	Owner              string
-	GitRepo            *GitRepository
+	GitRepo            *Repository
 	PullRequests       map[int]*FakePullRequest
 	Issues             map[int]*FakeIssue
 	Commits            []*FakeCommit
 	issueCount         int
-	Releases           map[string]*GitRelease
+	Releases           map[string]*Release
 	PullRequestCounter int
 }
 
 type FakeProvider struct {
-	Server             auth.AuthServer
-	User               auth.UserAuth
-	Organizations      []GitOrganisation
+	Organizations      []Organisation
 	Repositories       map[string][]*FakeRepository
 	ForkedRepositories map[string][]*FakeRepository
 	Type               FakeProviderType
-	Users              []*GitUser
+	Users              []*User
+	URL                string
+	Username           string
+	Name               string
+	FakeServer
+	User
 }
 
-func (f *FakeProvider) ListOrganisations() ([]GitOrganisation, error) {
+func (fs *FakeServer) Label() string {
+	return "fake label"
+}
+
+func (f *FakeProvider) ListOrganisations() ([]Organisation, error) {
 	return f.Organizations, nil
 }
 
-func (f *FakeProvider) ListRepositories(org string) ([]*GitRepository, error) {
+func (f *FakeProvider) ListRepositories(org string) ([]*Repository, error) {
 	repos, ok := f.Repositories[org]
 	if !ok {
 		return nil, fmt.Errorf("organization '%s' not found", org)
 	}
-	gitRepos := []*GitRepository{}
+	gitRepos := []*Repository{}
 	for _, repo := range repos {
 		gitRepos = append(gitRepos, repo.GitRepo)
 	}
 	return gitRepos, nil
 }
 
-func (f *FakeProvider) CreateRepository(org string, name string, private bool) (*GitRepository, error) {
-	gitRepo := &GitRepository{
+func (f *FakeProvider) CreateRepository(org string, name string, private bool) (*Repository, error) {
+	gitRepo := &Repository{
 		Name: name,
 	}
 
@@ -101,7 +116,7 @@ func (f *FakeProvider) CreateRepository(org string, name string, private bool) (
 	return gitRepo, nil
 }
 
-func (f *FakeProvider) GetRepository(org string, name string) (*GitRepository, error) {
+func (f *FakeProvider) GetRepository(org string, name string) (*Repository, error) {
 	repos, ok := f.Repositories[org]
 	if !ok {
 		return nil, fmt.Errorf("organization '%s' not found", org)
@@ -124,7 +139,7 @@ func (f *FakeProvider) DeleteRepository(org string, name string) error {
 	return fmt.Errorf("repository '%s' not found within the organization '%s'", name, org)
 }
 
-func (f *FakeProvider) ForkRepository(originalOrg string, name string, destinationOrg string) (*GitRepository, error) {
+func (f *FakeProvider) ForkRepository(originalOrg string, name string, destinationOrg string) (*Repository, error) {
 	for _, repo := range f.Repositories[originalOrg] {
 		if repo.GitRepo.Name == name {
 			f.ForkedRepositories[destinationOrg] = append(f.ForkedRepositories[destinationOrg], repo)
@@ -134,7 +149,7 @@ func (f *FakeProvider) ForkRepository(originalOrg string, name string, destinati
 	return nil, fmt.Errorf("repository '%s' not found within the organization '%s'", name, originalOrg)
 }
 
-func (f *FakeProvider) RenameRepository(org string, name string, newName string) (*GitRepository, error) {
+func (f *FakeProvider) RenameRepository(org string, name string, newName string) (*Repository, error) {
 	for _, repo := range f.Repositories[org] {
 		if repo.GitRepo.Name == name {
 			repo.GitRepo.Name = newName
@@ -153,9 +168,9 @@ func (f *FakeProvider) ValidateRepositoryName(org string, name string) error {
 	return fmt.Errorf("repository '%s' not found within the organization '%s'", name, org)
 }
 
-func (f *FakeProvider) CreatePullRequest(data *GitPullRequestArguments) (*GitPullRequest, error) {
-	org := data.GitRepository.Organisation
-	repoName := data.GitRepository.Name
+func (f *FakeProvider) CreatePullRequest(data *PullRequestArguments) (*PullRequest, error) {
+	org := data.Repository.Organisation
+	repoName := data.Repository.Name
 	repos, ok := f.Repositories[org]
 	if !ok {
 		return nil, fmt.Errorf("organization '%s' not found", org)
@@ -173,9 +188,9 @@ func (f *FakeProvider) CreatePullRequest(data *GitPullRequestArguments) (*GitPul
 
 	repo.issueCount += 1
 	number := repo.issueCount
-	pr := &GitPullRequest{
+	pr := &PullRequest{
 		URL: "",
-		Author: &GitUser{
+		Author: &User{
 			URL:       "",
 			Login:     "",
 			Name:      "",
@@ -204,7 +219,7 @@ func (f *FakeProvider) CreatePullRequest(data *GitPullRequestArguments) (*GitPul
 	return pr, nil
 }
 
-func (f *FakeProvider) UpdatePullRequestStatus(pr *GitPullRequest) error {
+func (f *FakeProvider) UpdatePullRequestStatus(pr *PullRequest) error {
 	owner := pr.Owner
 	repos, ok := f.Repositories[owner]
 	if !ok {
@@ -237,7 +252,7 @@ func (f *FakeProvider) UpdatePullRequestStatus(pr *GitPullRequest) error {
 	return fmt.Errorf("no repository '%s' found for owner '%s'", repoName, owner)
 }
 
-func (f *FakeProvider) GetPullRequest(owner string, repo *GitRepository, number int) (*GitPullRequest, error) {
+func (f *FakeProvider) GetPullRequest(owner string, repo *Repository, number int) (*PullRequest, error) {
 	repos, ok := f.Repositories[owner]
 	if !ok {
 		return nil, fmt.Errorf("no repositories found for '%s'", owner)
@@ -256,7 +271,7 @@ func (f *FakeProvider) GetPullRequest(owner string, repo *GitRepository, number 
 	return nil, fmt.Errorf("repository with name '%s' not found", repoName)
 }
 
-func (f *FakeProvider) GetPullRequestCommits(owner string, repo *GitRepository, number int) ([]*GitCommit, error) {
+func (f *FakeProvider) GetPullRequestCommits(owner string, repo *Repository, number int) ([]*Commit, error) {
 	repos, ok := f.Repositories[owner]
 	if !ok {
 		return nil, fmt.Errorf("no repositories found for '%s'", owner)
@@ -268,7 +283,7 @@ func (f *FakeProvider) GetPullRequestCommits(owner string, repo *GitRepository, 
 			if !ok {
 				return nil, fmt.Errorf("pull request with id '%d' not found", number)
 			}
-			commits := []*GitCommit{}
+			commits := []*Commit{}
 			for _, commit := range pr.Commits {
 				commits = append(commits, commit.Commit)
 			}
@@ -278,7 +293,7 @@ func (f *FakeProvider) GetPullRequestCommits(owner string, repo *GitRepository, 
 	return nil, fmt.Errorf("repository with name '%s' not found", repoName)
 }
 
-func (f *FakeProvider) PullRequestLastCommitStatus(pr *GitPullRequest) (string, error) {
+func (f *FakeProvider) PullRequestLastCommitStatus(pr *PullRequest) (string, error) {
 	owner := pr.Owner
 	repos, ok := f.Repositories[owner]
 	if !ok {
@@ -303,7 +318,7 @@ func (f *FakeProvider) PullRequestLastCommitStatus(pr *GitPullRequest) (string, 
 	return "", fmt.Errorf("repository with name '%s' not found", repoName)
 }
 
-func (f *FakeProvider) ListCommitStatus(org string, repoName string, sha string) ([]*GitRepoStatus, error) {
+func (f *FakeProvider) ListCommitStatus(org string, repoName string, sha string) ([]*RepoStatus, error) {
 	repos, ok := f.Repositories[org]
 	if !ok {
 		return nil, fmt.Errorf("no repositories found for '%s'", org)
@@ -319,10 +334,10 @@ func (f *FakeProvider) ListCommitStatus(org string, repoName string, sha string)
 		return nil, fmt.Errorf("repository with name '%s' not found", repoName)
 	}
 
-	answer := []*GitRepoStatus{}
+	answer := []*RepoStatus{}
 	for _, commit := range repo.Commits {
 		if commit.Commit.SHA == sha {
-			status := &GitRepoStatus{
+			status := &RepoStatus{
 				ID:          commit.Commit.SHA,
 				URL:         commit.Commit.URL,
 				State:       string(commit.Status),
@@ -334,10 +349,10 @@ func (f *FakeProvider) ListCommitStatus(org string, repoName string, sha string)
 	return answer, nil
 }
 
-func (f *FakeProvider) UpdateCommitStatus(org string, repo string, sha string, status *GitRepoStatus) (*GitRepoStatus, error) {
+func (f *FakeProvider) UpdateCommitStatus(org string, repo string, sha string, status *RepoStatus) (*RepoStatus, error) {
 	repoStatus, err := f.ListCommitStatus(org, repo, sha)
 	if err != nil {
-		return &GitRepoStatus{}, err
+		return &RepoStatus{}, err
 	}
 	updated := false
 	for i, s := range repoStatus {
@@ -353,7 +368,7 @@ func (f *FakeProvider) UpdateCommitStatus(org string, repo string, sha string, s
 
 }
 
-func (f *FakeProvider) MergePullRequest(pr *GitPullRequest, message string) error {
+func (f *FakeProvider) MergePullRequest(pr *PullRequest, message string) error {
 	owner := pr.Owner
 	repos, ok := f.Repositories[owner]
 	if !ok {
@@ -382,16 +397,16 @@ func (f *FakeProvider) MergePullRequest(pr *GitPullRequest, message string) erro
 	return fmt.Errorf("repository with name '%s' not found", repoName)
 }
 
-func (f *FakeProvider) CreateWebHook(data *GitWebHookArguments) error {
+func (f *FakeProvider) CreateWebHook(data *WebhookArguments) error {
 	return nil
 }
 
-func (p *FakeProvider) ListWebHooks(owner string, repo string) ([]*GitWebHookArguments, error) {
-	webHooks := []*GitWebHookArguments{}
+func (p *FakeProvider) ListWebHooks(owner string, repo string) ([]*WebhookArguments, error) {
+	webHooks := []*WebhookArguments{}
 	return webHooks, nil
 }
 
-func (p *FakeProvider) UpdateWebHook(data *GitWebHookArguments) error {
+func (p *FakeProvider) UpdateWebHook(data *WebhookArguments) error {
 	return fmt.Errorf("not implemented!")
 }
 
@@ -432,7 +447,7 @@ func (f *FakeProvider) Kind() string {
 	}
 }
 
-func (f *FakeProvider) GetIssue(org string, name string, number int) (*GitIssue, error) {
+func (f *FakeProvider) GetIssue(org string, name string, number int) (*Issue, error) {
 	repos, ok := f.Repositories[org]
 	if !ok {
 		return nil, fmt.Errorf("organization '%s' not found", org)
@@ -450,7 +465,7 @@ func (f *FakeProvider) GetIssue(org string, name string, number int) (*GitIssue,
 }
 
 func (f *FakeProvider) IssueURL(org string, name string, number int, isPull bool) string {
-	serverPrefix := f.Server.URL
+	var serverPrefix string
 	if !strings.HasPrefix(serverPrefix, "https://") {
 		serverPrefix = "https://" + serverPrefix
 	}
@@ -462,14 +477,14 @@ func (f *FakeProvider) IssueURL(org string, name string, number int, isPull bool
 	return url
 }
 
-func (f *FakeProvider) SearchIssues(org string, name string, query string) ([]*GitIssue, error) {
+func (f *FakeProvider) SearchIssues(org string, name string, query string) ([]*Issue, error) {
 	repos, ok := f.Repositories[org]
 	if !ok {
 		return nil, fmt.Errorf("organization '%s' not found", org)
 	}
 	for _, repo := range repos {
 		if repo.GitRepo.Name == name {
-			answer := []*GitIssue{}
+			answer := []*Issue{}
 			for _, issue := range repo.Issues {
 				answer = append(answer, issue.Issue)
 			}
@@ -479,13 +494,13 @@ func (f *FakeProvider) SearchIssues(org string, name string, query string) ([]*G
 	return nil, fmt.Errorf("repository with name '%s' not found", name)
 }
 
-func (f *FakeProvider) SearchIssuesClosedSince(org string, name string, t time.Time) ([]*GitIssue, error) {
+func (f *FakeProvider) SearchIssuesClosedSince(org string, name string, t time.Time) ([]*Issue, error) {
 	issues, err := f.SearchIssues(org, name, "")
 	if err != nil {
 		return nil, err
 	}
 
-	answer := []*GitIssue{}
+	answer := []*Issue{}
 	for _, issue := range issues {
 		closedTime := issue.ClosedAt
 		if closedTime.After(t) {
@@ -495,7 +510,7 @@ func (f *FakeProvider) SearchIssuesClosedSince(org string, name string, t time.T
 	return answer, nil
 }
 
-func (f *FakeProvider) CreateIssue(owner string, repoName string, issue *GitIssue) (*GitIssue, error) {
+func (f *FakeProvider) CreateIssue(owner string, repoName string, issue *Issue) (*Issue, error) {
 	repos, ok := f.Repositories[owner]
 	if !ok {
 		return nil, fmt.Errorf("organization '%s' not found", owner)
@@ -520,7 +535,7 @@ func (f *FakeProvider) HasIssues() bool {
 	return true
 }
 
-func (f *FakeProvider) AddPRComment(pr *GitPullRequest, comment string) error {
+func (f *FakeProvider) AddPRComment(pr *PullRequest, comment string) error {
 	owner := pr.Owner
 	repos, ok := f.Repositories[owner]
 	if !ok {
@@ -559,7 +574,7 @@ func (f *FakeProvider) CreateIssueComment(owner string, repoName string, number 
 	return fmt.Errorf("repository with name '%s' not found", repoName)
 }
 
-func (f *FakeProvider) UpdateRelease(owner string, repoName string, tag string, releaseInfo *GitRelease) error {
+func (f *FakeProvider) UpdateRelease(owner string, repoName string, tag string, releaseInfo *Release) error {
 	repos, ok := f.Repositories[owner]
 	if !ok {
 		return fmt.Errorf("organization '%s' not found", owner)
@@ -574,7 +589,7 @@ func (f *FakeProvider) UpdateRelease(owner string, repoName string, tag string, 
 	return fmt.Errorf("repository with name '%s' not found", repoName)
 }
 
-func (f *FakeProvider) ListReleases(org string, name string) ([]*GitRelease, error) {
+func (f *FakeProvider) ListReleases(org string, name string) ([]*Release, error) {
 	repos, ok := f.Repositories[org]
 	if !ok {
 		return nil, fmt.Errorf("organization '%s' not found", org)
@@ -582,7 +597,7 @@ func (f *FakeProvider) ListReleases(org string, name string) ([]*GitRelease, err
 
 	for _, repo := range repos {
 		if repo.GitRepo.Name == name {
-			releases := []*GitRelease{}
+			releases := []*Release{}
 			for _, release := range repo.Releases {
 				releases = append(releases, release)
 			}
@@ -597,11 +612,11 @@ func (f *FakeProvider) JenkinsWebHookPath(gitURL string, secret string) string {
 }
 
 func (f *FakeProvider) Label() string {
-	return f.Server.Label()
+	return f.Name
 }
 
 func (f *FakeProvider) ServerURL() string {
-	return f.Server.URL
+	return f.URL
 }
 
 func (f *FakeProvider) BranchArchiveURL(org string, name string, branch string) string {
@@ -609,14 +624,10 @@ func (f *FakeProvider) BranchArchiveURL(org string, name string, branch string) 
 }
 
 func (f *FakeProvider) CurrentUsername() string {
-	return f.User.Username
+	return f.Username
 }
 
-func (f *FakeProvider) UserAuth() auth.UserAuth {
-	return f.User
-}
-
-func (f *FakeProvider) UserInfo(username string) *GitUser {
+func (f *FakeProvider) UserInfo(username string) *User {
 	for _, user := range f.Users {
 		if user.Name == username {
 			return user
@@ -640,7 +651,7 @@ func (f *FakeProvider) AcceptInvitation(ID int64) (*github.Response, error) {
 	return &github.Response{}, nil
 }
 
-func (r *FakeProvider) GetContent(org string, name string, path string, ref string) (*GitFileContent, error) {
+func (r *FakeProvider) GetContent(org string, name string, path string, ref string) (*FileContent, error) {
 	return nil, nil
 }
 
@@ -656,7 +667,7 @@ func (r *FakeRepository) Name() string {
 func NewFakeRepository(owner string, repoName string) *FakeRepository {
 	return &FakeRepository{
 		Owner: owner,
-		GitRepo: &GitRepository{
+		GitRepo: &Repository{
 			Name:     repoName,
 			CloneURL: "https://github.com/" + owner + "/" + repoName + ".git",
 			HTMLURL:  "https://github.com/" + owner + "/" + repoName,

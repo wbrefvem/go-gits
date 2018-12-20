@@ -105,7 +105,7 @@ type GroupAndCommitInfos struct {
 }
 
 // GenerateMarkdown generates the markdown document for the commits
-func GenerateMarkdown(releaseSpec *v1.ReleaseSpec, gitInfo *GitRepository) (string, error) {
+func GenerateMarkdown(releaseSpec *v1.ReleaseSpec, gitInfo *Repository) (string, error) {
 	commitInfos := []*CommitInfo{}
 
 	groupAndCommits := map[int]*GroupAndCommitInfos{}
@@ -202,11 +202,11 @@ func GenerateMarkdown(releaseSpec *v1.ReleaseSpec, gitInfo *GitRepository) (stri
 	return buffer.String(), nil
 }
 
-func describeIssue(info *GitRepository, issue *v1.IssueSummary) string {
+func describeIssue(info *Repository, issue *v1.IssueSummary) string {
 	return describeIssueShort(info, issue) + issue.Title + describeUser(info, issue.User)
 }
 
-func describeIssueShort(info *GitRepository, issue *v1.IssueSummary) string {
+func describeIssueShort(info *Repository, issue *v1.IssueSummary) string {
 	prefix := ""
 	id := issue.ID
 	if len(id) > 0 {
@@ -219,7 +219,7 @@ func describeIssueShort(info *GitRepository, issue *v1.IssueSummary) string {
 	return "[" + prefix + issue.ID + "](" + issue.URL + ") "
 }
 
-func describeUser(info *GitRepository, user *v1.UserDetails) string {
+func describeUser(info *Repository, user *v1.UserDetails) string {
 	answer := ""
 	if user != nil {
 		userText := ""
@@ -246,7 +246,7 @@ func describeUser(info *GitRepository, user *v1.UserDetails) string {
 	return answer
 }
 
-func describeCommit(info *GitRepository, cs *v1.CommitSummary, ci *CommitInfo, issueMap map[string]*v1.IssueSummary) string {
+func describeCommit(info *Repository, cs *v1.CommitSummary, ci *CommitInfo, issueMap map[string]*v1.IssueSummary) string {
 	prefix := ""
 	if ci.Feature != "" {
 		prefix = ci.Feature + ": "

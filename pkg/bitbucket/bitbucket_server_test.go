@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	bitbucket "github.com/gfleury/go-bitbucket-v1"
-	"github.com/jenkins-x/jx/pkg/auth"
-	
+	"github.com/wbrefvem/go-gits/pkg/git"
+
 	"github.com/jenkins-x/jx/pkg/util"
 	"github.com/stretchr/testify/suite"
 )
@@ -76,19 +76,8 @@ func (suite *BitbucketServerProviderTestSuite) SetupSuite() {
 		suite.mux.HandleFunc(path, util.GetMockAPIResponseFromFile("test_data/bitbucket_server", methodMap))
 	}
 
-	as := auth.AuthServer{
-		URL:         "http://auth.example.com",
-		Name:        "Test Auth Server",
-		Kind:        "Oauth2",
-		CurrentUser: "test-user",
-	}
-	ua := auth.UserAuth{
-		Username: "test-user",
-		ApiToken: "0123456789abdef",
-	}
-
-	git := NewGitCLI()
-	bp, err := NewBitbucketServerProvider(&as, &ua, git)
+	git := git.NewGitCLI()
+	bp, err := NewBitbucketServerProvider("test-user", suite.server.URL, "0123456789abcdef", "bitbucketserver", git)
 
 	suite.Require().NotNil(bp)
 	suite.Require().Nil(err)
@@ -104,7 +93,7 @@ func (suite *BitbucketServerProviderTestSuite) SetupSuite() {
 	cfg := bitbucket.NewConfiguration(suite.server.URL + "/rest")
 	ctx := context.Background()
 
-	apiKeyAuthContext := context.WithValue(ctx, bitbucket.ContextAccessToken, ua.ApiToken)
+	apiKeyAuthContext := context.WithValue(ctx, bitbucket.ContextAccessToken, "0123456789abcdef")
 	suite.provider.Client = bitbucket.NewAPIClient(apiKeyAuthContext, cfg)
 }
 
@@ -177,8 +166,8 @@ func (suite *BitbucketServerProviderTestSuite) TestForkRepository() {
 }
 
 func (suite *BitbucketServerProviderTestSuite) TestCreatePullRequest() {
-	args := GitPullRequestArguments{
-		GitRepository: &GitRepository{
+	args := git.PullRequestArguments{
+		Repository: &git.Repository{
 			Name:    "test-repo",
 			Project: "TEST-ORG",
 		},
@@ -199,7 +188,7 @@ func (suite *BitbucketServerProviderTestSuite) TestUpdatePullRequestStatus() {
 	number := 1
 	state := "CLOSED"
 
-	pr := &GitPullRequest{
+	pr := &git.PullRequest{
 		URL:    "https://auth.example.com/projects/TEST-ORG/repos/test-repo",
 		Repo:   "test-repo",
 		Number: &number,
@@ -217,7 +206,7 @@ func (suite *BitbucketServerProviderTestSuite) TestGetPullRequest() {
 
 	pr, err := suite.provider.GetPullRequest(
 		"test-user",
-		&GitRepository{Name: "test-repo", Project: "TEST-ORG"},
+		&git.Repository{Name: "test-repo", Project: "TEST-ORG"},
 		1,
 	)
 
@@ -226,7 +215,7 @@ func (suite *BitbucketServerProviderTestSuite) TestGetPullRequest() {
 }
 
 func (suite *BitbucketServerProviderTestSuite) TestPullRequestCommits() {
-	commits, err := suite.provider.GetPullRequestCommits("test-user", &GitRepository{
+	commits, err := suite.provider.GetPullRequestCommits("test-user", &git.Repository{
 		URL:     "https://auth.example.com/projects/TEST-ORG/repos/test-repo",
 		Name:    "test-repo",
 		Project: "TEST-ORG",
@@ -240,7 +229,7 @@ func (suite *BitbucketServerProviderTestSuite) TestPullRequestCommits() {
 
 func (suite *BitbucketServerProviderTestSuite) TestPullRequestLastCommitStatus() {
 	prNumber := 1
-	pr := &GitPullRequest{
+	pr := &git.PullRequest{
 		URL:    "https://auth.example.com/projects/TEST-ORG/repos/test-repo/pull-requests/7/overview",
 		Repo:   "test-repo",
 		Number: &prNumber,
@@ -272,7 +261,7 @@ func (suite *BitbucketServerProviderTestSuite) TestListCommitStatuses() {
 func (suite *BitbucketServerProviderTestSuite) TestMergePullRequest() {
 
 	id := 1
-	pr := &GitPullRequest{
+	pr := &git.PullRequest{
 		URL:    "https://auth.example.com/projects/TEST-ORG/repos/test-repo/pull-requests/1",
 		Repo:   "test-repo",
 		Number: &id,
@@ -284,8 +273,8 @@ func (suite *BitbucketServerProviderTestSuite) TestMergePullRequest() {
 
 func (suite *BitbucketServerProviderTestSuite) TestCreateWebHook() {
 
-	data := &GitWebHookArguments{
-		Repo:   &GitRepository{URL: "https://auth.example.com/projects/TEST-ORG/repos/test-repo"},
+	data := &git.WebhookArguments{
+		Repo:   &git.Repository{URL: "https://auth.example.com/projects/TEST-ORG/repos/test-repo"},
 		URL:    "https://my-jenkins.example.com/bitbucket-webhook/",
 		Secret: "someSecret",
 	}
@@ -298,7 +287,7 @@ func (suite *BitbucketServerProviderTestSuite) TestUserInfo() {
 
 	userInfo := suite.provider.UserInfo("test-user")
 
-	suite.Require().Equal(GitUser{
+	suite.Require().Equal(git.User{
 		Login: "test-user",
 		Name:  "Test User",
 		Email: "",
@@ -327,7 +316,7 @@ func (suite *BitbucketServerProviderTestSuite) TestAcceptInvitations() {
 func (suite *BitbucketServerProviderTestSuite) TestAddPRComment() {
 
 	id := 1
-	pr := &GitPullRequest{
+	pr := &git.PullRequest{
 		Owner:  "TEST-ORG",
 		Repo:   "test-repo",
 		Number: &id,

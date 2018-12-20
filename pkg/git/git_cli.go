@@ -12,7 +12,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/jenkins-x/jx/pkg/auth"
 	"github.com/jenkins-x/jx/pkg/util"
 
 	gitcfg "gopkg.in/src-d/go-git.v4/config"
@@ -283,14 +282,14 @@ func (g *GitCLI) gitCmdWithOutput(dir string, args ...string) (string, error) {
 }
 
 // CreatePushURL creates the Git repository URL with the username and password encoded for HTTPS based URLs
-func (g *GitCLI) CreatePushURL(cloneURL string, userAuth *auth.UserAuth) (string, error) {
+func (g *GitCLI) CreatePushURL(cloneURL, username, token string) (string, error) {
 	u, err := url.Parse(cloneURL)
 	if err != nil {
 		// already a git/ssh url?
 		return cloneURL, nil
 	}
-	if userAuth.Username != "" || userAuth.ApiToken != "" {
-		u.User = url.UserPassword(userAuth.Username, userAuth.ApiToken)
+	if username != "" || token != "" {
+		u.User = url.UserPassword(username, token)
 		return u.String(), nil
 	}
 	return cloneURL, nil
@@ -314,7 +313,7 @@ func (g *GitCLI) Server(dir string) (string, error) {
 }
 
 // Info returns the git info of the repository at the given directory
-func (g *GitCLI) Info(dir string) (*GitRepository, error) {
+func (g *GitCLI) Info(dir string) (*Repository, error) {
 	text, err := g.gitCmdWithOutput(dir, "status")
 	var rUrl string
 	if err != nil && strings.Contains(text, "Not a git repository") {
