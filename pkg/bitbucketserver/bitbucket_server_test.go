@@ -1,4 +1,4 @@
-package bitbucket
+package bitbucketserver
 
 import (
 	"context"
@@ -22,7 +22,7 @@ type BitbucketServerProviderTestSuite struct {
 	suite.Suite
 	mux      *http.ServeMux
 	server   *httptest.Server
-	provider *BitbucketServerProvider
+	provider *ServerProvider
 }
 
 var bitbucketServerRouter = util.Router{
@@ -83,7 +83,7 @@ func (suite *BitbucketServerProviderTestSuite) SetupSuite() {
 	suite.Require().Nil(err)
 
 	var ok bool
-	suite.provider, ok = bp.(*BitbucketServerProvider)
+	suite.provider, ok = bp.(*ServerProvider)
 	suite.Require().True(ok)
 	suite.Require().NotNil(suite.provider)
 

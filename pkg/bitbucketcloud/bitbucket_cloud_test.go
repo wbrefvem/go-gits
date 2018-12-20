@@ -1,4 +1,4 @@
-package bitbucket
+package bitbucketcloud
 
 import (
 	"net/http"
@@ -21,8 +21,8 @@ type BitbucketCloudProviderTestSuite struct {
 	suite.Suite
 	mux       *http.ServeMux
 	server    *httptest.Server
-	provider  BitbucketCloudProvider
-	providers map[string]BitbucketCloudProvider
+	provider  CloudProvider
+	providers map[string]CloudProvider
 }
 
 const (
@@ -129,7 +129,7 @@ func (suite *BitbucketCloudProviderTestSuite) SetupSuite() {
 	cfg.BasePath = suite.server.URL
 
 	clientSingleton := bitbucket.NewAPIClient(cfg)
-	suite.providers = map[string]BitbucketCloudProvider{}
+	suite.providers = map[string]CloudProvider{}
 
 	for _, profile := range profiles {
 		gp, err := setupGitProvider(profile.url, profile.name, profile.username)
@@ -138,7 +138,7 @@ func (suite *BitbucketCloudProviderTestSuite) SetupSuite() {
 		suite.Require().Nil(err)
 
 		var ok bool
-		bp, ok := gp.(*BitbucketCloudProvider)
+		bp, ok := gp.(*CloudProvider)
 
 		suite.Require().NotNil(bp)
 		suite.Require().True(ok)

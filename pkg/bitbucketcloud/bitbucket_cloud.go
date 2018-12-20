@@ -1,4 +1,4 @@
-package bitbucket
+package bitbucketcloud
 
 import (
 	"context"
@@ -18,8 +18,8 @@ import (
 	"github.com/wbrefvem/go-gits/pkg/git"
 )
 
-// BitbucketCloudProvider implements git.Provider interface for bitbucket.org
-type BitbucketCloudProvider struct {
+// CloudProvider implements git.Provider interface for bitbucket.org
+type CloudProvider struct {
 	Client   *bitbucket.APIClient
 	Username string
 	Context  context.Context
@@ -44,7 +44,7 @@ func NewBitbucketCloudProvider(username, serverURL, token, providerName string, 
 	}
 	basicAuthContext := context.WithValue(ctx, bitbucket.ContextBasicAuth, basicAuth)
 
-	provider := BitbucketCloudProvider{
+	provider := CloudProvider{
 		URL:      serverURL,
 		Name:     providerName,
 		Username: username,
@@ -58,7 +58,7 @@ func NewBitbucketCloudProvider(username, serverURL, token, providerName string, 
 	return &provider, nil
 }
 
-func (b *BitbucketCloudProvider) ListOrganisations() ([]git.Organisation, error) {
+func (b *CloudProvider) ListOrganisations() ([]git.Organisation, error) {
 
 	teams := []git.Organisation{}
 
@@ -120,7 +120,7 @@ func BitbucketRepositoryToGitRepository(bRepo bitbucket.Repository) *git.Reposit
 	}
 }
 
-func (b *BitbucketCloudProvider) ListRepositories(org string) ([]*git.Repository, error) {
+func (b *CloudProvider) ListRepositories(org string) ([]*git.Repository, error) {
 
 	repos := []*git.Repository{}
 
@@ -150,7 +150,7 @@ func (b *BitbucketCloudProvider) ListRepositories(org string) ([]*git.Repository
 	return repos, nil
 }
 
-func (b *BitbucketCloudProvider) CreateRepository(
+func (b *CloudProvider) CreateRepository(
 	org string,
 	name string,
 	private bool,
@@ -176,7 +176,7 @@ func (b *BitbucketCloudProvider) CreateRepository(
 	return BitbucketRepositoryToGitRepository(result), nil
 }
 
-func (b *BitbucketCloudProvider) GetRepository(
+func (b *CloudProvider) GetRepository(
 	org string,
 	name string,
 ) (*git.Repository, error) {
@@ -194,7 +194,7 @@ func (b *BitbucketCloudProvider) GetRepository(
 	return BitbucketRepositoryToGitRepository(repo), nil
 }
 
-func (b *BitbucketCloudProvider) DeleteRepository(org string, name string) error {
+func (b *CloudProvider) DeleteRepository(org string, name string) error {
 
 	_, err := b.Client.RepositoriesApi.RepositoriesUsernameRepoSlugDelete(
 		b.Context,
@@ -210,7 +210,7 @@ func (b *BitbucketCloudProvider) DeleteRepository(org string, name string) error
 	return nil
 }
 
-func (b *BitbucketCloudProvider) ForkRepository(
+func (b *CloudProvider) ForkRepository(
 	originalOrg string,
 	name string,
 	destinationOrg string,
@@ -257,7 +257,7 @@ func (b *BitbucketCloudProvider) ForkRepository(
 	return BitbucketRepositoryToGitRepository(repo), nil
 }
 
-func (b *BitbucketCloudProvider) RenameRepository(
+func (b *CloudProvider) RenameRepository(
 	org string,
 	name string,
 	newName string,
@@ -281,7 +281,7 @@ func (b *BitbucketCloudProvider) RenameRepository(
 	return BitbucketRepositoryToGitRepository(repo), nil
 }
 
-func (b *BitbucketCloudProvider) ValidateRepositoryName(org string, name string) error {
+func (b *CloudProvider) ValidateRepositoryName(org string, name string) error {
 
 	_, r, err := b.Client.RepositoriesApi.RepositoriesUsernameRepoSlugGet(
 		b.Context,
@@ -300,7 +300,7 @@ func (b *BitbucketCloudProvider) ValidateRepositoryName(org string, name string)
 	return err
 }
 
-func (b *BitbucketCloudProvider) CreatePullRequest(
+func (b *CloudProvider) CreatePullRequest(
 	data *git.PullRequestArguments,
 ) (*git.PullRequest, error) {
 
@@ -378,7 +378,7 @@ func (b *BitbucketCloudProvider) CreatePullRequest(
 	return newPR, nil
 }
 
-func (b *BitbucketCloudProvider) UpdatePullRequestStatus(pr *git.PullRequest) error {
+func (b *CloudProvider) UpdatePullRequestStatus(pr *git.PullRequest) error {
 
 	prID := int32(*pr.Number)
 	bitbucketPR, _, err := b.Client.PullrequestsApi.RepositoriesUsernameRepoSlugPullrequestsPullRequestIdGet(
@@ -426,7 +426,7 @@ func (b *BitbucketCloudProvider) UpdatePullRequestStatus(pr *git.PullRequest) er
 	return nil
 }
 
-func (p *BitbucketCloudProvider) GetPullRequest(owner string, repoInfo *git.Repository, number int) (*git.PullRequest, error) {
+func (p *CloudProvider) GetPullRequest(owner string, repoInfo *git.Repository, number int) (*git.PullRequest, error) {
 	repo := repoInfo.Name
 	pr, _, err := p.Client.PullrequestsApi.RepositoriesUsernameRepoSlugPullrequestsPullRequestIdGet(
 		p.Context,
@@ -471,7 +471,7 @@ func (p *BitbucketCloudProvider) GetPullRequest(owner string, repoInfo *git.Repo
 	}, nil
 }
 
-func (b *BitbucketCloudProvider) GetPullRequestCommits(owner string, repository *git.Repository, number int) ([]*git.Commit, error) {
+func (b *CloudProvider) GetPullRequestCommits(owner string, repository *git.Repository, number int) ([]*git.Commit, error) {
 	repo := repository.Name
 	answer := []*git.Commit{}
 
@@ -552,7 +552,7 @@ func (b *BitbucketCloudProvider) GetPullRequestCommits(owner string, repository 
 	return answer, nil
 }
 
-func (b *BitbucketCloudProvider) PullRequestLastCommitStatus(pr *git.PullRequest) (string, error) {
+func (b *CloudProvider) PullRequestLastCommitStatus(pr *git.PullRequest) (string, error) {
 
 	latestCommitStatus := bitbucket.Commitstatus{}
 
@@ -594,7 +594,7 @@ func (b *BitbucketCloudProvider) PullRequestLastCommitStatus(pr *git.PullRequest
 	return stateMap[latestCommitStatus.State], nil
 }
 
-func (b *BitbucketCloudProvider) ListCommitStatus(org string, repo string, sha string) ([]*git.RepoStatus, error) {
+func (b *CloudProvider) ListCommitStatus(org string, repo string, sha string) ([]*git.RepoStatus, error) {
 
 	statuses := []*git.RepoStatus{}
 
@@ -640,11 +640,11 @@ func (b *BitbucketCloudProvider) ListCommitStatus(org string, repo string, sha s
 	return statuses, nil
 }
 
-func (b *BitbucketCloudProvider) UpdateCommitStatus(org string, repo string, sha string, status *git.RepoStatus) (*git.RepoStatus, error) {
+func (b *CloudProvider) UpdateCommitStatus(org string, repo string, sha string, status *git.RepoStatus) (*git.RepoStatus, error) {
 	return &git.RepoStatus{}, errors.New("TODO")
 }
 
-func (b *BitbucketCloudProvider) MergePullRequest(pr *git.PullRequest, message string) error {
+func (b *CloudProvider) MergePullRequest(pr *git.PullRequest, message string) error {
 
 	options := map[string]interface{}{
 		"body": map[string]interface{}{
@@ -669,7 +669,7 @@ func (b *BitbucketCloudProvider) MergePullRequest(pr *git.PullRequest, message s
 	return nil
 }
 
-func (b *BitbucketCloudProvider) CreateWebHook(data *git.WebhookArguments) error {
+func (b *CloudProvider) CreateWebHook(data *git.WebhookArguments) error {
 
 	options := map[string]interface{}{
 		"body": map[string]interface{}{
@@ -695,12 +695,12 @@ func (b *BitbucketCloudProvider) CreateWebHook(data *git.WebhookArguments) error
 	return nil
 }
 
-func (p *BitbucketCloudProvider) ListWebHooks(owner string, repo string) ([]*git.WebhookArguments, error) {
+func (p *CloudProvider) ListWebHooks(owner string, repo string) ([]*git.WebhookArguments, error) {
 	webHooks := []*git.WebhookArguments{}
 	return webHooks, fmt.Errorf("not implemented!")
 }
 
-func (p *BitbucketCloudProvider) UpdateWebHook(data *git.WebhookArguments) error {
+func (p *CloudProvider) UpdateWebHook(data *git.WebhookArguments) error {
 	return fmt.Errorf("not implemented!")
 }
 
@@ -737,7 +737,7 @@ func BitbucketIssueToIssue(bIssue bitbucket.Issue) *git.Issue {
 	return gitIssue
 }
 
-func (b *BitbucketCloudProvider) IssueToBitbucketIssue(gIssue git.Issue) bitbucket.Issue {
+func (b *CloudProvider) IssueToBitbucketIssue(gIssue git.Issue) bitbucket.Issue {
 
 	bitbucketIssue := bitbucket.Issue{
 		Title:      gIssue.Title,
@@ -748,7 +748,7 @@ func (b *BitbucketCloudProvider) IssueToBitbucketIssue(gIssue git.Issue) bitbuck
 	return bitbucketIssue
 }
 
-func (b *BitbucketCloudProvider) SearchIssues(org string, name string, query string) ([]*git.Issue, error) {
+func (b *CloudProvider) SearchIssues(org string, name string, query string) ([]*git.Issue, error) {
 
 	gitIssues := []*git.Issue{}
 
@@ -778,7 +778,7 @@ func (b *BitbucketCloudProvider) SearchIssues(org string, name string, query str
 	return gitIssues, nil
 }
 
-func (b *BitbucketCloudProvider) SearchIssuesClosedSince(org string, name string, t time.Time) ([]*git.Issue, error) {
+func (b *CloudProvider) SearchIssuesClosedSince(org string, name string, t time.Time) ([]*git.Issue, error) {
 	issues, err := b.SearchIssues(org, name, "")
 	if err != nil {
 		return issues, err
@@ -786,7 +786,7 @@ func (b *BitbucketCloudProvider) SearchIssuesClosedSince(org string, name string
 	return git.FilterIssuesClosedSince(issues, t), nil
 }
 
-func (b *BitbucketCloudProvider) GetIssue(org string, name string, number int) (*git.Issue, error) {
+func (b *CloudProvider) GetIssue(org string, name string, number int) (*git.Issue, error) {
 
 	issue, _, err := b.Client.IssueTrackerApi.RepositoriesUsernameRepoSlugIssuesIssueIdGet(
 		b.Context,
@@ -801,7 +801,7 @@ func (b *BitbucketCloudProvider) GetIssue(org string, name string, number int) (
 	return BitbucketIssueToIssue(issue), nil
 }
 
-func (p *BitbucketCloudProvider) IssueURL(org string, name string, number int, isPull bool) string {
+func (p *CloudProvider) IssueURL(org string, name string, number int, isPull bool) string {
 	serverPrefix := p.URL
 	if strings.Index(serverPrefix, "://") < 0 {
 		serverPrefix = "https://" + serverPrefix
@@ -814,7 +814,7 @@ func (p *BitbucketCloudProvider) IssueURL(org string, name string, number int, i
 	return url
 }
 
-func (b *BitbucketCloudProvider) CreateIssue(owner string, repo string, issue *git.Issue) (*git.Issue, error) {
+func (b *CloudProvider) CreateIssue(owner string, repo string, issue *git.Issue) (*git.Issue, error) {
 
 	bIssue, _, err := b.Client.IssueTrackerApi.RepositoriesUsernameRepoSlugIssuesPost(
 		b.Context,
@@ -837,66 +837,66 @@ func (b *BitbucketCloudProvider) CreateIssue(owner string, repo string, issue *g
 	return BitbucketIssueToIssue(bIssue), nil
 }
 
-func (b *BitbucketCloudProvider) AddPRComment(pr *git.PullRequest, comment string) error {
+func (b *CloudProvider) AddPRComment(pr *git.PullRequest, comment string) error {
 	log.Warn("Bitbucket Cloud doesn't support adding PR comments via the REST API")
 	return nil
 }
 
-func (b *BitbucketCloudProvider) CreateIssueComment(owner string, repo string, number int, comment string) error {
+func (b *CloudProvider) CreateIssueComment(owner string, repo string, number int, comment string) error {
 	log.Warn("Bitbucket Cloud doesn't support adding issue comments viea the REST API")
 	return nil
 }
 
-func (b *BitbucketCloudProvider) HasIssues() bool {
+func (b *CloudProvider) HasIssues() bool {
 	return true
 }
 
-func (b *BitbucketCloudProvider) IsGitHub() bool {
+func (b *CloudProvider) IsGitHub() bool {
 	return false
 }
 
-func (b *BitbucketCloudProvider) IsGitea() bool {
+func (b *CloudProvider) IsGitea() bool {
 	return false
 }
 
-func (b *BitbucketCloudProvider) IsBitbucketCloud() bool {
+func (b *CloudProvider) IsBitbucketCloud() bool {
 	return true
 }
 
-func (b *BitbucketCloudProvider) IsBitbucketServer() bool {
+func (b *CloudProvider) IsBitbucketServer() bool {
 	return false
 }
 
-func (b *BitbucketCloudProvider) IsGerrit() bool {
+func (b *CloudProvider) IsGerrit() bool {
 	return false
 }
 
-func (b *BitbucketCloudProvider) Kind() string {
+func (b *CloudProvider) Kind() string {
 	return "bitbucketcloud"
 }
 
 // Exposed by Jenkins plugin; this one is for https://wiki.jenkins.io/display/JENKINS/BitBucket+Plugin
-func (b *BitbucketCloudProvider) JenkinsWebHookPath(gitURL string, secret string) string {
+func (b *CloudProvider) JenkinsWebHookPath(gitURL string, secret string) string {
 	return "/bitbucket-scmsource-hook/notify"
 }
 
-func (b *BitbucketCloudProvider) Label() string {
+func (b *CloudProvider) Label() string {
 	return b.Name
 }
 
-func (b *BitbucketCloudProvider) ServerURL() string {
+func (b *CloudProvider) ServerURL() string {
 	return b.URL
 }
 
-func (b *BitbucketCloudProvider) BranchArchiveURL(org string, name string, branch string) string {
+func (b *CloudProvider) BranchArchiveURL(org string, name string, branch string) string {
 	return util.UrlJoin(b.ServerURL(), org, name, "get", branch+".zip")
 }
 
-func (p *BitbucketCloudProvider) CurrentUsername() string {
+func (p *CloudProvider) CurrentUsername() string {
 	return p.Username
 }
 
-func (p *BitbucketCloudProvider) UserInfo(username string) *git.User {
+func (p *CloudProvider) UserInfo(username string) *git.User {
 	user, _, err := p.Client.UsersApi.UsersUsernameGet(p.Context, username)
 	if err != nil {
 		log.Error("Unable to fetch user info for " + username + " due to " + err.Error() + "\n")
@@ -911,37 +911,37 @@ func (p *BitbucketCloudProvider) UserInfo(username string) *git.User {
 	}
 }
 
-func (b *BitbucketCloudProvider) UpdateRelease(owner string, repo string, tag string, releaseInfo *git.Release) error {
+func (b *CloudProvider) UpdateRelease(owner string, repo string, tag string, releaseInfo *git.Release) error {
 	log.Warn("Bitbucket Cloud doesn't support releases")
 	return nil
 }
 
-func (p *BitbucketCloudProvider) ListReleases(org string, name string) ([]*git.Release, error) {
+func (p *CloudProvider) ListReleases(org string, name string) ([]*git.Release, error) {
 	answer := []*git.Release{}
 	log.Warn("Bitbucket Cloud doesn't support releases")
 	return answer, nil
 }
 
-func (b *BitbucketCloudProvider) AddCollaborator(user string, organisation string, repo string) error {
+func (b *CloudProvider) AddCollaborator(user string, organisation string, repo string) error {
 	log.Infof("Automatically adding the pipeline user as a collaborator is currently not implemented for bitbucket. Please add user: %v as a collaborator to this project.\n", user)
 	return nil
 }
 
-func (b *BitbucketCloudProvider) ListInvitations() ([]*github.RepositoryInvitation, *github.Response, error) {
+func (b *CloudProvider) ListInvitations() ([]*github.RepositoryInvitation, *github.Response, error) {
 	log.Infof("Automatically adding the pipeline user as a collaborator is currently not implemented for bitbucket.\n")
 	return []*github.RepositoryInvitation{}, &github.Response{}, nil
 }
 
-func (b *BitbucketCloudProvider) AcceptInvitation(ID int64) (*github.Response, error) {
+func (b *CloudProvider) AcceptInvitation(ID int64) (*github.Response, error) {
 	log.Infof("Automatically adding the pipeline user as a collaborator is currently not implemented for bitbucket.\n")
 	return &github.Response{}, nil
 }
 
-func (b *BitbucketCloudProvider) GetContent(org string, name string, path string, ref string) (*git.FileContent, error) {
+func (b *CloudProvider) GetContent(org string, name string, path string, ref string) (*git.FileContent, error) {
 	return nil, fmt.Errorf("Getting content not supported on bitbucket")
 }
 
-func (b *BitbucketCloudProvider) AccessTokenURL() string {
+func (b *CloudProvider) AccessTokenURL() string {
 	// TODO with github we can default the scopes/flags we need on a token via adding
 	// ?scopes=repo,read:user,user:email,write:repo_hook
 	//
