@@ -16,7 +16,7 @@ type CreateRepoData struct {
 	FullName     string
 	PrivateRepo  bool
 	User         *auth.UserAuth
-	GitProvider  GitProvider
+	Provider  Provider
 }
 
 type GitRepositoryOptions struct {
@@ -30,15 +30,15 @@ type GitRepositoryOptions struct {
 
 // GetRepository returns the repository if it already exists
 func (d *CreateRepoData) GetRepository() (*Repository, error) {
-	return d.GitProvider.GetRepository(d.Organisation, d.RepoName)
+	return d.Provider.GetRepository(d.Organisation, d.RepoName)
 }
 
 // CreateRepository creates the repository - failing if it already exists
 func (d *CreateRepoData) CreateRepository() (*Repository, error) {
-	return d.GitProvider.CreateRepository(d.Organisation, d.RepoName, d.PrivateRepo)
+	return d.Provider.CreateRepository(d.Organisation, d.RepoName, d.PrivateRepo)
 }
 
-func GetRepoName(batchMode, allowExistingRepo bool, provider GitProvider, defaultRepoName, owner string, in terminal.FileReader, out terminal.FileWriter, errOut io.Writer) (string, error) {
+func GetRepoName(batchMode, allowExistingRepo bool, provider Provider, defaultRepoName, owner string, in terminal.FileReader, out terminal.FileWriter, errOut io.Writer) (string, error) {
 	surveyOpts := survey.WithStdio(in, out, errOut)
 	repoName := ""
 	if batchMode {
@@ -75,7 +75,7 @@ func GetRepoName(batchMode, allowExistingRepo bool, provider GitProvider, defaul
 	return repoName, nil
 }
 
-func GetOwner(batchMode bool, provider GitProvider, gitUsername string, in terminal.FileReader, out terminal.FileWriter, errOut io.Writer) (string, error) {
+func GetOwner(batchMode bool, provider Provider, gitUsername string, in terminal.FileReader, out terminal.FileWriter, errOut io.Writer) (string, error) {
 	owner := ""
 	if batchMode {
 		owner = gitUsername

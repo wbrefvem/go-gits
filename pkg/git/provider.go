@@ -163,7 +163,7 @@ type FileContent struct {
 
 // PullRequestInfo describes a pull request that has been created
 type PullRequestInfo struct {
-	GitProvider          GitProvider
+	Provider          Provider
 	PullRequest          *PullRequest
 	PullRequestArguments *PullRequestArguments
 }
@@ -183,7 +183,7 @@ func (pr *PullRequest) NumberString() string {
 }
 
 // GetHost returns the Git Provider hostname, e.g github.com
-func GetHost(gitProvider GitProvider) (string, error) {
+func GetHost(gitProvider Provider) (string, error) {
 	if gitProvider == nil {
 		return "", fmt.Errorf("no Git provider")
 	}
@@ -233,7 +233,7 @@ func GetOrganizations(orgLister OrganisationLister, userName string) []string {
 	return orgNames
 }
 
-func PickRepositories(provider GitProvider, owner string, message string, selectAll bool, filter string, in terminal.FileReader, out terminal.FileWriter, errOut io.Writer) ([]*Repository, error) {
+func PickRepositories(provider Provider, owner string, message string, selectAll bool, filter string, in terminal.FileReader, out terminal.FileWriter, errOut io.Writer) ([]*Repository, error) {
 	answer := []*Repository{}
 	repos, err := provider.ListRepositories(owner)
 	if err != nil {

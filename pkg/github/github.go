@@ -28,7 +28,7 @@ type GitHubProvider struct {
 	Name     string
 }
 
-func NewGitHubProvider(username, serverURL, token, providerName string, git git.Gitter) (git.GitProvider, error) {
+func NewGitHubProvider(username, serverURL, token, providerName string, git git.Gitter) (git.Provider, error) {
 	ctx := context.Background()
 
 	provider := GitHubProvider{

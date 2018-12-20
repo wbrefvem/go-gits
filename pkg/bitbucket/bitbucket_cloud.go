@@ -18,7 +18,7 @@ import (
 	"github.com/wbrefvem/go-gits/pkg/git"
 )
 
-// BitbucketCloudProvider implements git.GitProvider interface for bitbucket.org
+// BitbucketCloudProvider implements git.Provider interface for bitbucket.org
 type BitbucketCloudProvider struct {
 	Client   *bitbucket.APIClient
 	Username string
@@ -35,7 +35,7 @@ var stateMap = map[string]string{
 	"STOPPED":    "stopped",
 }
 
-func NewBitbucketCloudProvider(username, serverURL, token, providerName string, git git.Gitter) (git.GitProvider, error) {
+func NewBitbucketCloudProvider(username, serverURL, token, providerName string, git git.Gitter) (git.Provider, error) {
 	ctx := context.Background()
 
 	basicAuth := bitbucket.BasicAuth{

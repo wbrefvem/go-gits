@@ -28,7 +28,7 @@ type FakeOrganisation struct {
 }
 
 // NewFakeGitProvider creates a new fake git provider
-func NewFakeGitProvider(username, providerName string, git Gitter) (GitProvider, error) {
+func NewFakeGitProvider(username, providerName string, git Gitter) (Provider, error) {
 	User := User{}
 	serverURL := FakeGitURL
 	answer := &GitFakeProvider{

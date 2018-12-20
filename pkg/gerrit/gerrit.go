@@ -20,7 +20,7 @@ type GerritProvider struct {
 	Git git.Gitter
 }
 
-func NewGerritProvider(git git.Gitter) (git.GitProvider, error) {
+func NewGerritProvider(git git.Gitter) (git.Provider, error) {
 	ctx := context.Background()
 
 	provider := GerritProvider{

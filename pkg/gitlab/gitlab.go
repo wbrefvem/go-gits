@@ -25,7 +25,7 @@ type GitlabProvider struct {
 	Name string
 }
 
-func NewGitlabProvider(username, serverURL, token, providerName string, git git.Gitter) (git.GitProvider, error) {
+func NewGitlabProvider(username, serverURL, token, providerName string, git git.Gitter) (git.Provider, error) {
 	u := serverURL
 	c := gitlab.NewClient(nil, username)
 	if !IsGitLabServerURL(u) {
@@ -42,7 +42,7 @@ func IsGitLabServerURL(u string) bool {
 }
 
 // Used by unit tests to inject a mocked client
-func WithGitlabClient(serverURL, username string, client *gitlab.Client, git git.Gitter) (git.GitProvider, error) {
+func WithGitlabClient(serverURL, username string, client *gitlab.Client, git git.Gitter) (git.Provider, error) {
 	provider := &GitlabProvider{
 		Username: username,
 		Client:   client,

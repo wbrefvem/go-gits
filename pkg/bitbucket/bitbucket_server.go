@@ -18,7 +18,7 @@ import (
 	"github.com/wbrefvem/go-gits/pkg/git"
 )
 
-// BitbucketServerProvider implements git.GitProvider interface for a bitbucket server
+// BitbucketServerProvider implements git.Provider interface for a bitbucket server
 type BitbucketServerProvider struct {
 	Client   *bitbucket.APIClient
 	Username string
@@ -67,7 +67,7 @@ type pullrequestEndpointBranch struct {
 	Name string `json:"name,omitempty"`
 }
 
-func NewBitbucketServerProvider(username, serverURL, token, providerName string, git git.Gitter) (git.GitProvider, error) {
+func NewBitbucketServerProvider(username, serverURL, token, providerName string, git git.Gitter) (git.Provider, error) {
 	ctx := context.Background()
 	apiKeyAuthContext := context.WithValue(ctx, bitbucket.ContextAccessToken, token)
 

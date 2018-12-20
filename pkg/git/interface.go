@@ -18,9 +18,9 @@ type OrganisationChecker interface {
 	IsUserInOrganisation(user string, organisation string) (bool, error)
 }
 
-// GitProvider is the interface for abstracting use of different git provider APIs
-//go:generate pegomock generate github.com/wbrefvem/go-gits/pkg/git GitProvider -o mocks/git_provider.go --generate-matchers
-type GitProvider interface {
+// Provider is the interface for abstracting use of different git provider APIs
+//go:generate pegomock generate github.com/wbrefvem/go-gits/pkg/git Provider -o mocks/git_provider.go --generate-matchers
+type Provider interface {
 	OrganisationLister
 
 	ListRepositories(org string) ([]*Repository, error)

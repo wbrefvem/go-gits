@@ -107,7 +107,7 @@ var bitbucketRouter = util.Router{
 	},
 }
 
-func setupGitProvider(url, name, user string) (git.GitProvider, error) {
+func setupGitProvider(url, name, user string) (git.Provider, error) {
 
 	cli := git.NewGitCLI()
 	bp, err := NewBitbucketCloudProvider(user, url, "", "bitbucketcloud", cli)

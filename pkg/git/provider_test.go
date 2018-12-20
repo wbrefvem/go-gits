@@ -50,7 +50,7 @@ func Test_getOrganizations(t *testing.T) {
 	}
 }
 
-func createGitProvider(t *testing.T, kind string, git Gitter) GitProvider {
+func createGitProvider(t *testing.T, kind string, git Gitter) Provider {
 	switch kind {
 	case KindGitHub:
 		gitHubProvider, err := NewGitHubProvider(server, user, git)
@@ -729,7 +729,7 @@ func TestCreateGitProviderFromURL(t *testing.T) {
 				console, donech = tc.setup(t)
 			}
 
-			var result GitProvider
+			var result Provider
 			if console != nil {
 				result, err = CreateProviderForURL(tc.inCluster, *authSvc, tc.providerKind, tc.hostURL, tc.git, tc.batchMode, console.In, console.Out, console.Err)
 			} else {
@@ -759,7 +759,7 @@ func TestCreateGitProviderFromURL(t *testing.T) {
 	}
 }
 
-func assertProvider(t *testing.T, want GitProvider, result GitProvider) {
+func assertProvider(t *testing.T, want Provider, result Provider) {
 	assert.Equal(t, want.Kind(), result.Kind())
 	assert.Equal(t, want.ServerURL(), result.ServerURL())
 	assert.Equal(t, want.UserAuth(), result.UserAuth())
